@@ -1,0 +1,11 @@
+echo "#include <GL/gl.h>" > shaders.hh
+xxd -i vert.glsl >> shaders.hh
+echo "" >> shaders.hh
+xxd -i frag.glsl >> shaders.hh
+xxd -i geometry.glsl >> shaders.hh
+sed -i 's/char/const GLchar/g' shaders.hh
+sed -i 's/int/const GLint/g' shaders.hh
+sed -i 's/unsigned//g' shaders.hh
+
+clang++ main.cpp -lGLEW -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o demo -O3
+sstrip demo
