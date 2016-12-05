@@ -1,7 +1,7 @@
 #version 400 core
 #define M_PI 3.1415926535897932384626433832795
 
-layout(points) in;
+layout(triangles) in;
 layout(triangle_strip, max_vertices = 128) out; //too much but enough for whatever
 
 out vec3 position;

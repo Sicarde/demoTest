@@ -69,7 +69,32 @@ GLuint initGL() {
     if (!success)
     {
 	glGetShaderInfoLog(geometryShader, LOGSIZE, NULL, infoLog);
-	std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+	std::cout << "ERROR::SHADER::GEOMETRY::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+
+    // Tesselation Control shader
+    GLuint tesselationControlShader = glCreateShader(GL_TESS_CONTROL_SHADER);
+    sptr = tesselationCtrl_glsl;
+    glShaderSource(tesselationControlShader, 1, &sptr, &tesselationCtrl_glsl_len);
+    glCompileShader(tesselationControlShader);
+    // Check for compile time errors
+    glGetShaderiv(tesselationControlShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+	glGetShaderInfoLog(tesselationControlShader, LOGSIZE, NULL, infoLog);
+	std::cout << "ERROR::SHADER::TESSELATIONCONTROL::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+    // Tesselation Evaluation shader
+    GLuint tesselationEvaluationShader = glCreateShader(GL_TESS_EVALUATION_SHADER);
+    sptr = tesselationEval_glsl;
+    glShaderSource(tesselationEvaluationShader, 1, &sptr, &tesselationEval_glsl_len);
+    glCompileShader(tesselationEvaluationShader);
+    // Check for compile time errors
+    glGetShaderiv(tesselationEvaluationShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+	glGetShaderInfoLog(tesselationEvaluationShader, LOGSIZE, NULL, infoLog);
+	std::cout << "ERROR::SHADER::TESSELATIONEVALUATION::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
 
     // Link shaders
@@ -77,6 +102,8 @@ GLuint initGL() {
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glAttachShader(shaderProgram, geometryShader);
+    glAttachShader(shaderProgram, tesselationControlShader);
+    glAttachShader(shaderProgram, tesselationEvaluationShader);
     glProgramParameteriEXT(shaderProgram, GL_GEOMETRY_INPUT_TYPE_EXT, GL_POINTS);
     glProgramParameteriEXT(shaderProgram, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_POINTS);
     glProgramParameteriEXT(shaderProgram, GL_GEOMETRY_VERTICES_OUT_EXT, 4);
@@ -112,8 +139,8 @@ GLuint initGL() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
@@ -137,6 +164,7 @@ int main() {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	float uTime = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - originTime).count();
+	//glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(20.0f, 20.0f, 20.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(1.0f, 0.0f, 1.0f));
 	glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(3.0f, 3.0f, 3.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(1.0f, 0.0f, 1.0f));
 	glm::mat4 rotationGeometry = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 1.0f, 1.0f));
 	//glm::mat4 rotationGeometry = glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(0.0f, 1.0f, 1.0f));
@@ -146,7 +174,9 @@ int main() {
 	glUniform1f(timeLoc, uTime);
 
 	// Draw our first triangle
-	glDrawArrays(GL_POINTS, 0, 4);
+	//glDrawArrays(GL_POINTS, 0, 4);
+	glPatchParameteri(GL_PATCH_VERTICES, 3);
+	glDrawElements(GL_PATCHES, 6, GL_UNSIGNED_INT, 0);
 	//glDrawElements(GL_POINTS, 6, GL_UNSIGNED_INT, 0);
 
 	glfwSwapBuffers(window);
