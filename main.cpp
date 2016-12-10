@@ -166,8 +166,8 @@ int main() {
 	float uTime = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - originTime).count();
 	//glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(20.0f, 20.0f, 20.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(1.0f, 0.0f, 1.0f));
 	glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(3.0f, 3.0f, 3.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(1.0f, 0.0f, 1.0f));
-	glm::mat4 rotationGeometry = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 1.0f, 1.0f));
-	//glm::mat4 rotationGeometry = glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(0.0f, 1.0f, 1.0f));
+	//glm::mat4 rotationGeometry = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 1.0f, 1.0f));
+	glm::mat4 rotationGeometry = glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(0.0f, 1.0f, 1.0f));
 	glUniformMatrix4fv(rotationLoc, 1, GL_FALSE, glm::value_ptr(rotationGeometry));
 	//glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(0.0f, 0.0f, -3.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); //from top
 	glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, glm::value_ptr(mvp));
