@@ -104,9 +104,9 @@ GLuint initGL() {
     glAttachShader(shaderProgram, geometryShader);
     glAttachShader(shaderProgram, tesselationControlShader);
     glAttachShader(shaderProgram, tesselationEvaluationShader);
-    glProgramParameteriEXT(shaderProgram, GL_GEOMETRY_INPUT_TYPE_EXT, GL_POINTS);
-    glProgramParameteriEXT(shaderProgram, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_POINTS);
-    glProgramParameteriEXT(shaderProgram, GL_GEOMETRY_VERTICES_OUT_EXT, 4);
+    //glProgramParameteriEXT(shaderProgram, GL_GEOMETRY_INPUT_TYPE_EXT, GL_LINES);
+    //glProgramParameteriEXT(shaderProgram, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_LINE_STRIP);
+    //glProgramParameteriEXT(shaderProgram, GL_GEOMETRY_VERTICES_OUT_EXT, 2);
     glLinkProgram(shaderProgram);
     // Check for linking errors
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
@@ -120,14 +120,16 @@ GLuint initGL() {
     glDeleteShader(geometryShader);
 
     GLfloat vertices[] = {
+	-1.0f,  1.0f, 0.0f,   // Top Left
 	1.0f,  1.0f, 0.0f,  // Top Right
 	1.0f, -1.0f, 0.0f,  // Bottom Right
-	-1.0f, -1.0f, 0.0f,  // Bottom Left
-	-1.0f,  1.0f, 0.0f   // Top Left
+	-1.0f, -1.0f, 0.0f  // Bottom Left
     };
     GLuint indices[] = {  // Note that we start from 0!
-	0, 1, 3,  // First Triangle
-	1, 2, 3   // Second Triangle
+	//0, 1, 2,  // First Triangle
+	//2, 3, 0   // Second Triangle
+	0, 1, 1, 2//, 2, 0, //isoline first triangle
+	//2, 3, 3, 0, 0, 2 //isoline second triangle
     };
     GLuint VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
@@ -165,7 +167,7 @@ int main() {
 	glClear(GL_COLOR_BUFFER_BIT);
 	float uTime = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - originTime).count();
 	//glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(20.0f, 20.0f, 20.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(1.0f, 0.0f, 1.0f));
-	glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(3.0f, 3.0f, 3.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(1.0f, 0.0f, 1.0f));
+	glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(3.0f, 3.0f, 3.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));// * glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(1.0f, 0.0f, 1.0f));
 	//glm::mat4 rotationGeometry = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 1.0f, 1.0f));
 	glm::mat4 rotationGeometry = glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(0.0f, 1.0f, 1.0f));
 	glUniformMatrix4fv(rotationLoc, 1, GL_FALSE, glm::value_ptr(rotationGeometry));
@@ -175,8 +177,8 @@ int main() {
 
 	// Draw our first triangle
 	//glDrawArrays(GL_POINTS, 0, 4);
-	glPatchParameteri(GL_PATCH_VERTICES, 3);
-	glDrawElements(GL_PATCHES, 6, GL_UNSIGNED_INT, 0);
+	glPatchParameteri(GL_PATCH_VERTICES, 2);
+	glDrawElements(GL_PATCHES, 4, GL_UNSIGNED_INT, 0);
 	//glDrawElements(GL_POINTS, 6, GL_UNSIGNED_INT, 0);
 
 	glfwSwapBuffers(window);

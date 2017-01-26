@@ -1,11 +1,13 @@
 #version 400 core
 #define M_PI 3.1415926535897932384626433832795
 
-layout(triangles) in;
+layout(lines) in;
+//layout(line_strip, max_vertices = 2) out; //too much but enough for whatever
+//layout(triangles) in;
 layout(triangle_strip, max_vertices = 240) out; //too much but enough for whatever
 
 out vec3 position;
-in int geometryGenerateSomething[3];
+//in int geometryGenerateSomething[3];
 
 uniform float u_time;
 uniform mat4 rotation;
@@ -14,6 +16,16 @@ vec3 GetNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) { //currently not used 
 	vec3 a = vertex1 - vertex2;// vec3(gl_in[0].gl_Position) - vec3(gl_in[1].gl_Position);
 	vec3 b = vertex3 - vertex2;// vec3(gl_in[2].gl_Position) - vec3(gl_in[1].gl_Position);
 	return normalize(cross(a, b));
+}
+
+void emitLine(vec4 v1, vec4 v2) {
+    gl_Position = v1 * rotation;
+    position = gl_Position.xyz;
+    EmitVertex();
+    gl_Position = v2 * rotation;
+    position = gl_Position.xyz;
+    EmitVertex();
+    EndPrimitive();
 }
 
 void emitTriangle(vec4 v1, vec4 v2, vec4 v3) {
@@ -71,11 +83,41 @@ void emitShapeExtrude(int sidesNumber, vec4 extrudeVector, vec4 originalPoint, v
 	}
 }
 
+void extrudeLine(vec4 p1, vec4 p2, vec4 offset, bool close) {
+    vec4 p3 = p1 + offset;
+    vec4 p4 = p2 + offset;
+    emitQuad(p1, p2, p3, p4);
+    if (close) { //close front and back of shape to z = 0
+        p3 = vec4(p1.x, p1.y, 0.0, 0.0);
+        p4 = vec4(p2.x, p2.y, 0.0, 0.0);
+        emitQuad(p1, p2, p3, p4);
+    }
+}
+
+vec4 whateverCurve(float x) {
+    float y = 1/x + 1.0;
+    return vec4(x, y, 0.0, 0.0);
+}
+
+void extrudeAlongCurve(int nbEx, float start, float stepSize) {
+    vec4 pointA = gl_in[0].gl_Position;
+    vec4 pointB = gl_in[1].gl_Position;
+    for (int i = 0; i < nbEx; i++) {
+	vec4 size = whateverCurve(float(i) * stepSize + start);
+	extrudeLine(pointA, pointB, size, false);
+	pointA += size;
+	pointB += size;
+    }
+}
+
 void main() {
     //emitShapeExtrude(int(u_time * 0.25) % 4 + 3, vec4(0.0, 0.125, 0.25, .0), gl_in[0].gl_Position, vec2(0.4), false);
     //emitShapeExtrude(3, vec4(0.0, 0.125, 0.25, .0), gl_in[0].gl_Position  - gl_in[0].gl_Position + ampersandCurve(gl_in[0].gl_Position.xy), vec2(0.4), true); //alongCurve
-    if (geometryGenerateSomething[0] == 1) {
-	emitShapeExtrude(int(u_time * 0.25) % 4 + 3, vec4(0.0, 0.125, 0.25, .0), gl_in[0].gl_Position, vec2(0.4), true);
-    }
+    //if (geometryGenerateSomething[0] == 1) {
+    //    emitShapeExtrude(int(u_time * 0.25) % 4 + 3, vec4(0.0, 0.125, 0.25, .0), gl_in[0].gl_Position, vec2(0.4), true);
+    //}
     //emitTriangle(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);
+    //emitLine(gl_in[0].gl_Position, gl_in[1].gl_Position); //carefull with geometry output
+    //extrudeLine(gl_in[0].gl_Position, gl_in[1].gl_Position, vec4(0.0, 0.1, 0.1, 0.0), false);
+    extrudeAlongCurve(5, 0.5, 0.5);
 }
