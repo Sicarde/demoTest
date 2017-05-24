@@ -9,10 +9,13 @@ sed -i 's/char/const GLchar/g' shaders.hh
 sed -i 's/int/const GLint/g' shaders.hh
 sed -i 's/unsigned//g' shaders.hh
 
-clang++ main.cpp -lglfw -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o demo -O3 -flto=thin -fuse-ld=gold -DGLFW_MODE
-#clang++ main.cpp -lSDL -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o demo -O3 -flto=thin -fuse-ld=gold -DSDL12_MODE
-#clang++ main.cpp -lSDL2 -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o demo -O3 -flto=thin -fuse-ld=gold -DSDL2_MODE
-#sstrip demo
+clang++ main.cpp -lglfw -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o demo_glfw -O3 -flto=thin -fuse-ld=gold -DGLFW_MODE
+sstrip demo_glfw
+clang++ main.cpp -lSDL -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o demo_sdl -O3 -flto=thin -fuse-ld=gold -DSDL12_MODE
+sstrip demo_sdl
+clang++ main.cpp -lSDL2 -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o demo_sdl2 -O3 -flto=thin -fuse-ld=gold -DSDL2_MODE
+sstrip demo_sdl2
 # www.int21.de/linux4k/
 echo "dd bs=1 skip=61<\$0|gunzip>/tmp/C;chmod +x /tmp/C;/tmp/C;exit" > 64k
-gzip -cn9 demo >> 64k
+chmod +x 64k
+gzip -cn9 demo_glfw >> 64k
