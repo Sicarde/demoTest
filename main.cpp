@@ -9,18 +9,22 @@
 #include <chrono>
 #include "shaders.hh"
 
+#ifdef GLFW_MODE
+#include <GLFW/glfw3.h>
+
+GLFWwindow* window = nullptr;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 	glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
-GLFWwindow* initWin(){
+void initWin(){
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-    GLFWwindow* window = glfwCreateWindow(1920, 1080, "demo", nullptr, nullptr);
+    window = glfwCreateWindow(1920, 1080, "demo", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
     glewExperimental = GL_TRUE;
@@ -29,8 +33,64 @@ GLFWwindow* initWin(){
     glfwGetFramebufferSize(window, &width, &height);
     glViewport(0, 0, width, height);
     glfwSetKeyCallback(window, key_callback);
-    return window;
 }
+
+bool shouldContinue() {
+	glfwPollEvents();
+	return !glfwWindowShouldClose(window);
+}
+
+void swapBuffers() {
+    glfwSwapBuffers(window);
+}
+
+#elif SDL12_MODE
+#include <SDL/SDL.h>
+
+void initWin() {
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_SetVideoMode(1920,1080,0,SDL_OPENGL);
+    SDL_ShowCursor(SDL_DISABLE);
+
+    glewExperimental = GL_TRUE;
+    glewInit();
+}
+
+SDL_Event event;
+bool shouldContinue() {
+    SDL_PollEvent(&event);
+    return (event.key.keysym.sym != SDLK_ESCAPE) || (event.type == SDL_QUIT);
+}
+void swapBuffers() {
+    SDL_GL_SwapBuffers();
+}
+#elif SDL2_MODE
+#include <SDL2/SDL.h>
+SDL_Window* window;
+void initWin() {
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+
+     window = SDL_CreateWindow("demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1920, 1080, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+
+     SDL_GLContext context = SDL_GL_CreateContext(window);
+     glewExperimental = GL_TRUE;
+     glewInit();
+}
+SDL_Event event;
+bool shouldContinue() {
+    SDL_PollEvent(&event);
+    return (event.key.keysym.sym != SDLK_ESCAPE) || (event.type == SDL_QUIT);
+}
+void swapBuffers() {
+    SDL_GL_SwapWindow(window);
+}
+#else
+#error "TODO: IMPLEMENT XCB"
+//xcb.freedesktop.org/opengl/
+#endif
 
 #define LOGSIZE 1024
 GLuint initGL() {
@@ -152,7 +212,7 @@ GLuint initGL() {
 }
 
 int main() {
-    GLFWwindow* window = initWin();
+    initWin();
     GLuint shaderProgram = initGL();
     glm::mat4 projectionMat = glm::perspective(glm::radians(90.0f), 1920.0f / 1080.0f, 1.0f, 100.0f);
     glm::mat4 viewProjMat = projectionMat * glm::lookAt(glm::vec3(0.0f, 6.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -161,8 +221,7 @@ int main() {
     GLint rotationLoc = glGetUniformLocation(shaderProgram, "rotation");
     auto originTime = std::chrono::high_resolution_clock::now();
 
-    while(!glfwWindowShouldClose(window)) {
-	glfwPollEvents();
+    while(shouldContinue()) {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	float uTime = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - originTime).count();
@@ -181,7 +240,7 @@ int main() {
 	glDrawElements(GL_PATCHES, 4, GL_UNSIGNED_INT, 0);
 	//glDrawElements(GL_POINTS, 6, GL_UNSIGNED_INT, 0);
 
-	glfwSwapBuffers(window);
+	swapBuffers();
     }
     return 0;
 }
