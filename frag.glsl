@@ -1,35 +1,76 @@
 #version 400 core
 
 in vec3 position;
-out vec4 color;
+out vec3 fragColor;
+varying vec2 v_texcoord;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+#define MARCH_THRESOLD 0.1
 
-vec4 tridentCurve(vec2 p) {
-    float a = -2;
-    float b = -2;
-    float c = -2;
-    float d = -2;
-
-    float color = clamp(p.x * p.y + a * pow(p.x, 3.0) + b * pow(p.x, 2.0 + c * p.x) - d, 0.0, 1.0);
-    return vec4(color, color, color, 1.0);
-    //xy+ax3+bx2+cx=d
+mat3 setCamera( in vec3 ro, in vec3 ta, float cr )
+{
+    vec3 cw = normalize(ta-ro);
+    vec3 cp = vec3(sin(cr), cos(cr),0.0);
+    vec3 cu = normalize( cross(cw,cp) );
+    vec3 cv = normalize( cross(cu,cw) );
+    return mat3( cu, cv, cw );
+}
+vec2 add(vec2 d1, vec2 d2) {
+    return (d1.x<d2.x) ? d1 : d2;
 }
 
-vec4 ampersandCurve(vec2 p) {
-    float color = clamp((pow(p.y, 2.0) - pow(p.x, 2.0)) * (p.x - 1.0) * (2.0 * p.x - 3.0) - 4.0 * pow(pow(p.x, 2.0) + pow(p.y, 2.0) - 2.0 * p.x, 2.0), 0.0, 1.0);
-    return vec4(color, color, color, 1.0);
-    //(y2 - x2)(x-1)(2x-3)=4(x2+y2-2x)2
+float sdSphere( vec3 p, float s ) {
+    return length(p)-s;
 }
 
-vec4 bicuspidCurve(vec2 p) {
-    float a = 2.5;
-    float color = clamp((pow(p.x, 2.0) - pow(a, 2.0)) * pow(p.x - a, 2.0) + pow(pow(p.y, 2.0) - pow(a, 2.0), 2.0), 0.0, 1.0);
-    return vec4(color, color, color, 1.0);
-    //(x2-a2)(x-a)2+(y2-a2)2=0
+float udRoundBox(vec3 p, vec3 b, float r) {
+    return length(max(abs(p)-b,0.0))-r;
+}
+
+vec2 scene(in vec3 pos) {
+    vec2 r = vec2(sdSphere(pos - vec3(0.0, cos(u_time), 0.0), 0.25), 46.9);
+    r = add(r, vec2(sdSphere(pos - vec3(sin(u_time), 0.25, 0.0), 0.25), 26.9));
+    r = add(r, vec2(udRoundBox(pos - vec3(0.0, -1.5, 0.0), vec3(2., 0.2, 2.2), 0.1), 23.2));
+    return r;
+}
+
+// IQ Raymarching www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
+vec2 castRay(in vec3 rayOrigin, in vec3 rayDirection) {
+    const float depthMin = 1.0;
+    const float depthMax= 20.0;
+
+    float depth = depthMin;
+    float m = -1.0; // what is that ?
+    for(int i=0; i < 64; i++) {
+	float precis = 0.0005 * depth;
+	vec2 res = scene(rayOrigin + rayDirection * depth);
+	if(res.x < precis || depth > depthMax) {
+	    break;
+	}
+	depth += res.x;
+	m = res.y;
+    }
+
+    if(depth > depthMax) {
+	m =-1.0;
+    }
+    return vec2(depth, m);
 }
 
 void main() {
-    //color = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-    //color = tridentCurve(position.xy);
-    //color = bicuspidCurve(position.xy);
-    color = ampersandCurve(position.xy);
+    //float d = sdSphere(vec3(10, 0.0, 0.0), 5);
+    vec3 camera = vec3(1.0, 2.0, -5);
+    vec2 coord = -1.0 + 2.0 * gl_FragCoord.xy / u_resolution;
+    coord.y /= u_resolution.x / u_resolution.y;
+    vec3 dir = setCamera(camera, vec3( -0.5, -0.4, 0.5 ), 0.0) * normalize(vec3(coord, 2.));
+
+    float complexity;
+    vec2 data = castRay(camera, dir);
+    vec3 pos = camera + data.x * dir;
+    if(data.y < 1.5) {
+	fragColor = vec3(0.01, 0.01, 0.02);
+    } else {
+	fragColor = 0.45 + 0.35 * sin( vec3(0.05,0.08,0.10) * (data.y - 1.0) );
+    }
 }
