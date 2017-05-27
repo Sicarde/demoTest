@@ -184,10 +184,10 @@ GLuint initGL() {
     //glDeleteShader(geometryShader);
 
     GLfloat vertices[] = {
-	-1.0f,  1.0f, 0.0f,   // Top Left
-	1.0f,  1.0f, 0.0f,  // Top Right
-	1.0f, -1.0f, 0.0f,  // Bottom Right
-	-1.0f, -1.0f, 0.0f  // Bottom Left
+	-1.0f,  1.0f,  // Top Left
+	1.0f,  1.0f, // Top Right
+	1.0f, -1.0f, // Bottom Right
+	-1.0f, -1.0f,// Bottom Left
     };
     GLuint indices[] = {  // Note that we start from 0!
 	0, 1, 2,
@@ -213,7 +213,7 @@ GLuint initGL() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
 
     //glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
@@ -228,8 +228,8 @@ int main() {
     GLint timeLoc = glGetUniformLocation(shaderProgram, "u_time");
     GLint resLoc = glGetUniformLocation(shaderProgram, "u_resolution");
     //GLint mouseLoc = glGetUniformLocation(shaderProgram, "u_mouse");
-    GLint mvpLoc = glGetUniformLocation(shaderProgram, "mvp");
-    GLint rotationLoc = glGetUniformLocation(shaderProgram, "rotation");
+    //GLint mvpLoc = glGetUniformLocation(shaderProgram, "mvp");
+    //GLint rotationLoc = glGetUniformLocation(shaderProgram, "rotation");
     auto originTime = std::chrono::high_resolution_clock::now();
 
     while(shouldContinue()) {
@@ -254,7 +254,6 @@ int main() {
 #else
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 #endif
-
 	swapBuffers();
     }
     return 0;
