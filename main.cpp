@@ -9,6 +9,23 @@
 #include <chrono>
 #include "shaders.hh"
 
+// retina
+//#define RESOLUTIONX 2280
+//#define RESOLUTIONY 1800
+
+////1080p
+//#define RESOLUTIONX 1920
+//#define RESOLUTIONY 1080
+//// half 1080p
+//#define RESOLUTIONX 960
+//#define RESOLUTIONY 420
+//// 900p
+//#define RESOLUTIONX 1600
+//#define RESOLUTIONY 900
+//720p
+#define RESOLUTIONX 1280
+#define RESOLUTIONY 720
+
 #ifdef GLFW_MODE
 #include <GLFW/glfw3.h>
 
@@ -24,7 +41,7 @@ void initWin(){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-    window = glfwCreateWindow(1920, 1080, "demo", nullptr, nullptr);
+    window = glfwCreateWindow(RESOLUTIONX, RESOLUTIONY, "demo", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
     glewExperimental = GL_TRUE;
@@ -49,7 +66,7 @@ void swapBuffers() {
 
 void initWin() {
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_SetVideoMode(1920,1080,0,SDL_OPENGL);
+    SDL_SetVideoMode(RESOLUTIONX, RESOLUTIONY, 0, SDL_OPENGL);
     SDL_ShowCursor(SDL_DISABLE);
 
     glewExperimental = GL_TRUE;
@@ -73,7 +90,7 @@ void initWin() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
-     window = SDL_CreateWindow("demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1920, 1080, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+     window = SDL_CreateWindow("demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, RESOLUTIONX, RESOLUTIONY, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
      SDL_GLContext context = SDL_GL_CreateContext(window);
      glewExperimental = GL_TRUE;
@@ -223,8 +240,8 @@ GLuint initGL() {
 int main() {
     initWin();
     GLuint shaderProgram = initGL();
-    glm::mat4 projectionMat = glm::perspective(glm::radians(90.0f), 1920.0f / 1080.0f, 1.0f, 100.0f);
-    glm::mat4 viewProjMat = projectionMat * glm::lookAt(glm::vec3(0.0f, 6.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    //glm::mat4 projectionMat = glm::perspective(glm::radians(90.0f), RESOLUTIONX / RESOLUTIONY, 1.0f, 100.0f);
+    //glm::mat4 viewProjMat = projectionMat * glm::lookAt(glm::vec3(0.0f, 6.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     GLint timeLoc = glGetUniformLocation(shaderProgram, "u_time");
     GLint resLoc = glGetUniformLocation(shaderProgram, "u_resolution");
     //GLint mouseLoc = glGetUniformLocation(shaderProgram, "u_mouse");
@@ -244,7 +261,7 @@ int main() {
 	//glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(0.0f, 0.0f, -3.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); //from top
 	//glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, glm::value_ptr(mvp));
 	glUniform1f(timeLoc, uTime / 1000.0f);
-	glUniform2f(resLoc, 1920, 1080);
+	glUniform2f(resLoc, RESOLUTIONX, RESOLUTIONY);
 
 	// Draw our first triangle
 	//glDrawArrays(GL_POINTS, 0, 4);

@@ -6,7 +6,6 @@ varying vec2 v_texcoord;
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform vec2 u_mouse;
-#define MARCH_THRESOLD 0.1
 
 mat3 setCamera( in vec3 ro, in vec3 ta, float cr )
 {
@@ -31,26 +30,30 @@ float udRoundBox(vec3 p, vec3 b, float r) {
 vec2 scene(in vec3 pos) {
     vec2 r = vec2(sdSphere(pos - vec3(0.0, cos(u_time), 0.0), 0.25), 46.9);
     r = add(r, vec2(sdSphere(pos - vec3(sin(u_time), 0.25, 0.0), 0.25), 26.9));
-    r = add(r, vec2(udRoundBox(pos - vec3(0.0, -1.5, 0.0), vec3(2., 0.2, 2.2), 0.1), 23.2));
+    r = add(r, vec2(udRoundBox(pos - vec3(0.0, -1.5, 0.0), vec3(2., 0.2, 2.2), 0.1), 10.2));
     return r;
 }
 
+#define MAX_RAYMARCH_ITERATIONS 48
 // IQ Raymarching www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
-vec2 castRay(in vec3 rayOrigin, in vec3 rayDirection) {
+vec2 castRay(in vec3 rayOrigin, in vec3 rayDirection, out float complexity) {
     const float depthMin = 1.0;
     const float depthMax= 20.0;
 
     float depth = depthMin;
     float m = -1.0; // what is that ?
-    for(int i=0; i < 64; i++) {
-	float precis = 0.0005 * depth;
+    complexity = 0;
+    for(int i=0; i < MAX_RAYMARCH_ITERATIONS; i++) {
+	float precis = 0.00005 * depth;
 	vec2 res = scene(rayOrigin + rayDirection * depth);
 	if(res.x < precis || depth > depthMax) {
 	    break;
 	}
 	depth += res.x;
 	m = res.y;
+	++complexity;
     }
+    complexity /= MAX_RAYMARCH_ITERATIONS;
 
     if(depth > depthMax) {
 	m =-1.0;
@@ -66,8 +69,11 @@ void main() {
     vec3 dir = setCamera(camera, vec3( -0.5, -0.4, 0.5 ), 0.0) * normalize(vec3(coord, 2.));
 
     float complexity;
-    vec2 data = castRay(camera, dir);
+    vec2 data = castRay(camera, dir, complexity);
     vec3 pos = camera + data.x * dir;
+#if 0
+    fragColor = vec3(complexity); return;
+#endif
     if(data.y < 1.5) {
 	fragColor = vec3(0.01, 0.01, 0.02);
     } else {
