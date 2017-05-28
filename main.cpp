@@ -9,6 +9,9 @@
 #include <chrono>
 #include "shaders.hh"
 
+#define STRINGIZE2(s) #s
+#define STRINGIZE(s) STRINGIZE2(s)
+
 // retina
 //#define RESOLUTIONX 2280
 //#define RESOLUTIONY 1800
@@ -95,7 +98,7 @@ void initWin() {
     swa.event_mask        = StructureNotifyMask;
     win = XCreateWindow(display, RootWindow(display, vi->screen), 0, 0, RESOLUTIONX, RESOLUTIONY, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel|CWColormap|CWEventMask, &swa);
     XFree(vi);
-    XStoreName(display, win, "demo");
+    XStoreName(display, win, STRINGIZE(DEMONAME));
     XMapWindow(display, win);
     // Get the default screen's GLX extension list
     const char *glxExts = glXQueryExtensionsString(display, DefaultScreen(display));
@@ -152,7 +155,7 @@ void initWin(){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-    window = glfwCreateWindow(RESOLUTIONX, RESOLUTIONY, "demo", nullptr, nullptr);
+    window = glfwCreateWindow(RESOLUTIONX, RESOLUTIONY, STRINGIZE(DEMONAME), nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
     int width, height;
@@ -199,7 +202,7 @@ void initWin() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
-     window = SDL_CreateWindow("demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, RESOLUTIONX, RESOLUTIONY, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+     window = SDL_CreateWindow(STRINGIZE(DEMONAME), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, RESOLUTIONX, RESOLUTIONY, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
      SDL_GLContext context = SDL_GL_CreateContext(window);
 }
