@@ -30,8 +30,40 @@ float udRoundBox(vec3 p, vec3 b, float r) {
 vec2 scene(in vec3 pos) {
     vec2 r = vec2(sdSphere(pos - vec3(0.0, cos(u_time), 0.0), 0.25), 46.9);
     r = add(r, vec2(sdSphere(pos - vec3(sin(u_time), 0.25, 0.0), 0.25), 26.9));
-    r = add(r, vec2(udRoundBox(pos - vec3(0.0, -1.5, 0.0), vec3(2., 0.2, 2.2), 0.1), 10.2));
+    r = add(r, vec2(udRoundBox(pos - vec3(0.0, -1.0, 0.0), vec3(2., 0.2, 2.2), 0.1), 10.2));
     return r;
+}
+
+vec3 Normal( in vec3 pos )
+{
+    vec2 e = vec2(1.0,-1.0)*0.5773*0.0005;
+    return normalize(e.xyy*scene(pos + e.xyy).x + 
+	    e.yyx*scene(pos + e.yyx).x + 
+	    e.yxy*scene(pos + e.yxy).x + 
+	    e.xxx*scene(pos + e.xxx).x );
+    /*
+       vec3 eps = vec3( 0.0005, 0.0, 0.0 );
+       vec3 nor = vec3(
+       map(pos+eps.xyy).x - map(pos-eps.xyy).x,
+       map(pos+eps.yxy).x - map(pos-eps.yxy).x,
+       map(pos+eps.yyx).x - map(pos-eps.yyx).x );
+       return normalize(nor);
+     */
+}
+
+float AO( in vec3 pos, in vec3 nor )
+{
+    float occ = 0.0;
+    float sca = 1.0;
+    for( int i=0; i<5; i++ )
+    {
+	float hr = 0.01 + 0.12*float(i)/4.0;
+	vec3 aopos =  nor * hr + pos;
+	float dd = scene( aopos ).x;
+	occ += -(dd-hr)*sca;
+	sca *= 0.95;
+    }
+    return clamp( 1.0 - 3.0*occ, 0.0, 1.0 );    
 }
 
 #define MAX_RAYMARCH_ITERATIONS 48
@@ -53,6 +85,7 @@ vec2 castRay(in vec3 rayOrigin, in vec3 rayDirection, out float complexity) {
 	m = res.y;
 	++complexity;
     }
+
     complexity /= MAX_RAYMARCH_ITERATIONS;
 
     if(depth > depthMax) {
@@ -70,7 +103,10 @@ void main() {
 
     float complexity;
     vec2 data = castRay(camera, dir, complexity);
-    vec3 pos = camera + data.x * dir;
+
+    vec3 hitPosition = camera + data.x * dir;
+    vec3 normal = Normal(hitPosition);
+    float AO = AO(hitPosition, normal);
 #if 0
     fragColor = vec3(complexity); return;
 #endif
@@ -78,5 +114,6 @@ void main() {
 	fragColor = vec3(0.01, 0.01, 0.02);
     } else {
 	fragColor = 0.45 + 0.35 * sin( vec3(0.05,0.08,0.10) * (data.y - 1.0) );
+	fragColor = mix(fragColor * 0.4, fragColor, AO);
     }
 }

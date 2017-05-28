@@ -121,7 +121,7 @@ GLuint initGL() {
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success) {
 	glGetShaderInfoLog(vertexShader, LOGSIZE, NULL, infoLog);
-	std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+	//std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
     // Fragment shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -133,7 +133,7 @@ GLuint initGL() {
     if (!success)
     {
 	glGetShaderInfoLog(fragmentShader, LOGSIZE, NULL, infoLog);
-	std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+	//std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
 
     //// Geometry shader
@@ -160,7 +160,7 @@ GLuint initGL() {
     if (!success)
     {
         glGetShaderInfoLog(tesselationControlShader, LOGSIZE, NULL, infoLog);
-        std::cout << "ERROR::SHADER::TESSELATIONCONTROL::COMPILATION_FAILED\n" << infoLog << std::endl;
+        //std::cout << "ERROR::SHADER::TESSELATIONCONTROL::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
     // Tesselation Evaluation shader
     GLuint tesselationEvaluationShader = glCreateShader(GL_TESS_EVALUATION_SHADER);
@@ -172,7 +172,7 @@ GLuint initGL() {
     if (!success)
     {
         glGetShaderInfoLog(tesselationEvaluationShader, LOGSIZE, NULL, infoLog);
-        std::cout << "ERROR::SHADER::TESSELATIONEVALUATION::COMPILATION_FAILED\n" << infoLog << std::endl;
+        //std::cout << "ERROR::SHADER::TESSELATIONEVALUATION::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
 #endif
 
@@ -193,7 +193,7 @@ GLuint initGL() {
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
 	glGetProgramInfoLog(shaderProgram, LOGSIZE, NULL, infoLog);
-	std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+	//std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
     }
     glUseProgram(shaderProgram);
     glDeleteShader(vertexShader);
