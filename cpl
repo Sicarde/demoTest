@@ -17,9 +17,9 @@ clang++ main.cpp -lSDL -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o d
 sstrip demo_sdl
 clang++ main.cpp -lSDL2 -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o demo_sdl2 -O3 -flto=thin -fuse-ld=gold -DSDL2_MODE -DDEMONAME="$DemoName"
 sstrip demo_sdl2
-clang++ main.cpp -lX11 -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o demo_X11 -O3 -flto=thin -fuse-ld=gold -DX11_MODE -DDEMONAME="$DemoName"
+clang++ main.cpp -lX11 -lGLEW -lGL -std=c++0x -o demo_X11 -O3 -flto=thin -fuse-ld=gold -DX11_MODE -DDEMONAME="$DemoName"
 sstrip demo_X11
 # www.int21.de/linux4k/
 echo "dd bs=1 skip=61<\$0|gunzip>/tmp/C;chmod +x /tmp/C;/tmp/C;exit" > 64k
 chmod +x 64k
-gzip -cn9 demo_glfw >> 64k
+gzip -cn9 demo_X11 >> 64k

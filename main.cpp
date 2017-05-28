@@ -80,10 +80,12 @@ void initWin() {
 	    int samp_buf, samples;
 	    glXGetFBConfigAttrib( display, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf );
 	    glXGetFBConfigAttrib( display, fbc[i], GLX_SAMPLES       , &samples  );
-	    if ( best_fbc < 0 || samp_buf && samples > best_num_samp )
+	    if ( best_fbc < 0 || (samp_buf && samples > best_num_samp)) {
 		best_fbc = i, best_num_samp = samples;
-	    if ( worst_fbc < 0 || !samp_buf || samples < worst_num_samp )
+	    }
+	    if ( worst_fbc < 0 || !samp_buf || samples < worst_num_samp ) {
 		worst_fbc = i, worst_num_samp = samples;
+	    }
 	}
 	XFree( vi );
     }
