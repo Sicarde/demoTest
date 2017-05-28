@@ -26,11 +26,18 @@ float sdSphere( vec3 p, float s ) {
 float udRoundBox(vec3 p, vec3 b, float r) {
     return length(max(abs(p)-b,0.0))-r;
 }
+float udBox( vec3 p, vec3 b )
+{
+    return length(max(abs(p)-b,0.0));
+}
 
 vec2 scene(in vec3 pos) {
     vec2 r = vec2(sdSphere(pos - vec3(0.0, cos(u_time), 0.0), 0.25), 46.9);
     r = add(r, vec2(sdSphere(pos - vec3(sin(u_time), 0.25, 0.0), 0.25), 26.9));
     r = add(r, vec2(udRoundBox(pos - vec3(0.0, -1.0, 0.0), vec3(2., 0.2, 2.2), 0.1), 10.2));
+    r = add(r, vec2(udBox(pos - vec3 (-2.0, 0.0, 0.0), vec3(0.1, 5.0, 4.0)), 50.2));
+    r = add(r, vec2(udBox(pos - vec3 (2.0, 0.0, 0.0), vec3(0.1, 5.0, 4.0)), 90.2));
+    r = add(r, vec2(udBox(pos - vec3 (0.0, 0.0, 2.0), vec3(5.0, 5.0, 0.1)), 75.2));
     return r;
 }
 
@@ -107,9 +114,14 @@ void main() {
     vec3 hitPosition = camera + data.x * dir;
     vec3 normal = Normal(hitPosition);
     float AO = AO(hitPosition, normal);
+    vec2 reflection;
+    float refComplexity = 1.0f;
+    reflection = castRay(hitPosition, reflect(dir, normal), refComplexity);
 #if 0
     fragColor = vec3(complexity); return;
 #endif
+    //data.y = mix(reflection.y, data.y, (sin(u_time) / 2.0) + 0.5); // testing reflections
+    data.y = mix(reflection.y, data.y, 0.6); // testing reflections
     if(data.y < 1.5) {
 	fragColor = vec3(0.01, 0.01, 0.02);
     } else {
