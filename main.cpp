@@ -14,8 +14,8 @@
 //#define RESOLUTIONY 1800
 
 ////1080p
-#define RESOLUTIONX 1920
-#define RESOLUTIONY 1080
+//#define RESOLUTIONX 1920
+//#define RESOLUTIONY 1080
 //// half 1080p
 //#define RESOLUTIONX 960
 //#define RESOLUTIONY 420
@@ -23,8 +23,119 @@
 //#define RESOLUTIONX 1600
 //#define RESOLUTIONY 900
 //720p
-//#define RESOLUTIONX 1280
-//#define RESOLUTIONY 720
+#define RESOLUTIONX 1280
+#define RESOLUTIONY 720
+
+#define END 8629
+
+#ifdef X11_MODE
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <GL/glx.h>
+
+#define GLX_CONTEXT_MAJOR_VERSION_ARB       0x2091
+#define GLX_CONTEXT_MINOR_VERSION_ARB       0x2092
+typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+Display *display;
+Window win;
+GLXContext ctx;
+Colormap cmap;
+void initWin() {
+    display = XOpenDisplay(NULL);
+    static int visual_attribs[] =
+    {
+	GLX_X_RENDERABLE    , True,
+	GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
+	GLX_RENDER_TYPE     , GLX_RGBA_BIT,
+	GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
+	GLX_RED_SIZE        , 8,
+	GLX_GREEN_SIZE      , 8,
+	GLX_BLUE_SIZE       , 8,
+	GLX_ALPHA_SIZE      , 8,
+	GLX_DEPTH_SIZE      , 24,
+	GLX_STENCIL_SIZE    , 8,
+	GLX_DOUBLEBUFFER    , True,
+	//GLX_SAMPLE_BUFFERS  , 1,
+	//GLX_SAMPLES         , 4,
+	None
+    };
+
+    int glx_major, glx_minor;
+
+    // FBConfigs were added in GLX version 1.3.
+    if (!glXQueryVersion(display, &glx_major, &glx_minor) || ((glx_major == 4) && (glx_minor < 3)) || (glx_major < 1)) {
+	std::cout << "your openGL isn't cool enough\n";
+    }
+
+    int fbcount;
+    GLXFBConfig* fbc = glXChooseFBConfig(display, DefaultScreen(display), visual_attribs, &fbcount);
+    int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
+    int i;
+    for (i=0; i<fbcount; ++i) {
+	XVisualInfo *vi = glXGetVisualFromFBConfig( display, fbc[i] );
+	if (vi) {
+	    int samp_buf, samples;
+	    glXGetFBConfigAttrib( display, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf );
+	    glXGetFBConfigAttrib( display, fbc[i], GLX_SAMPLES       , &samples  );
+	    if ( best_fbc < 0 || samp_buf && samples > best_num_samp )
+		best_fbc = i, best_num_samp = samples;
+	    if ( worst_fbc < 0 || !samp_buf || samples < worst_num_samp )
+		worst_fbc = i, worst_num_samp = samples;
+	}
+	XFree( vi );
+    }
+    GLXFBConfig bestFbc = fbc[ best_fbc ];
+    XFree( fbc );
+    // Get a visual
+    XVisualInfo *vi = glXGetVisualFromFBConfig(display, bestFbc);
+    XSetWindowAttributes swa;
+    swa.colormap = cmap = XCreateColormap(display, RootWindow(display, vi->screen), vi->visual, AllocNone);
+    swa.background_pixmap = None ;
+    swa.border_pixel      = 0;
+    swa.event_mask        = StructureNotifyMask;
+    win = XCreateWindow(display, RootWindow(display, vi->screen), 0, 0, RESOLUTIONX, RESOLUTIONY, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel|CWColormap|CWEventMask, &swa);
+    XFree(vi);
+    XStoreName(display, win, "demo");
+    XMapWindow(display, win);
+    // Get the default screen's GLX extension list
+    const char *glxExts = glXQueryExtensionsString(display, DefaultScreen(display));
+    glXCreateContextAttribsARBProc glXCreateContextAttribsARB = 0;
+    glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc) glXGetProcAddressARB( (const GLubyte *) "glXCreateContextAttribsARB" );
+
+    ctx = 0;
+    static bool ctxErrorOccurred = false;
+    ctxErrorOccurred = false;
+    int context_attribs[] = {
+	GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+	GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+	//GLX_CONTEXT_FLAGS_ARB        , GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+	None
+    };
+    ctx = glXCreateContextAttribsARB( display, bestFbc, 0,
+	    True, context_attribs );
+    XSync( display, False );
+    glXMakeCurrent( display, win, ctx );
+}
+
+bool shouldContinue(float time) {
+    if (time < END) {
+	return true;
+    } else {
+	glXMakeCurrent(display, 0, 0 );
+	glXDestroyContext(display, ctx);
+
+	XDestroyWindow( display, win );
+	XFreeColormap( display, cmap );
+	XCloseDisplay( display );
+	return false;
+    }
+}
+
+void swapBuffers() {
+    glXSwapBuffers(display, win);
+}
+
+#endif
 
 #ifdef GLFW_MODE
 #include <GLFW/glfw3.h>
@@ -44,16 +155,17 @@ void initWin(){
     window = glfwCreateWindow(RESOLUTIONX, RESOLUTIONY, "demo", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
-    glewExperimental = GL_TRUE;
-    glewInit();
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     glViewport(0, 0, width, height);
     glfwSetKeyCallback(window, key_callback);
 }
 
-bool shouldContinue() {
+bool shouldContinue(float time) {
 	glfwPollEvents();
+	if (time > END) {
+	    glfwSetWindowShouldClose(window, GLFW_TRUE);
+	}
 	return !glfwWindowShouldClose(window);
 }
 
@@ -68,15 +180,12 @@ void initWin() {
     SDL_Init(SDL_INIT_VIDEO);
     SDL_SetVideoMode(RESOLUTIONX, RESOLUTIONY, 0, SDL_OPENGL);
     SDL_ShowCursor(SDL_DISABLE);
-
-    glewExperimental = GL_TRUE;
-    glewInit();
 }
 
 SDL_Event event;
-bool shouldContinue() {
+bool shouldContinue(float time) {
     SDL_PollEvent(&event);
-    return (event.key.keysym.sym != SDLK_ESCAPE) || (event.type == SDL_QUIT);
+    return (event.key.keysym.sym != SDLK_ESCAPE) || (event.type == SDL_QUIT) || (time > END);
 }
 void swapBuffers() {
     SDL_GL_SwapBuffers();
@@ -93,24 +202,21 @@ void initWin() {
      window = SDL_CreateWindow("demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, RESOLUTIONX, RESOLUTIONY, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
      SDL_GLContext context = SDL_GL_CreateContext(window);
-     glewExperimental = GL_TRUE;
-     glewInit();
 }
 SDL_Event event;
-bool shouldContinue() {
+bool shouldContinue(float time) {
     SDL_PollEvent(&event);
-    return (event.key.keysym.sym != SDLK_ESCAPE) || (event.type == SDL_QUIT);
+    return (event.key.keysym.sym != SDLK_ESCAPE) || (event.type == SDL_QUIT) || (time > END);
 }
 void swapBuffers() {
     SDL_GL_SwapWindow(window);
 }
-#else
-#error "TODO: IMPLEMENT XCB"
-//xcb.freedesktop.org/opengl/
 #endif
 
 #define LOGSIZE 1024
 GLuint initGL() {
+     glewExperimental = GL_TRUE;
+     glewInit();
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     const GLchar* sptr = vert_glsl;
     glShaderSource(vertexShader, 1, &sptr, &vert_glsl_len);
@@ -136,18 +242,20 @@ GLuint initGL() {
 	//std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
 
-    //// Geometry shader
-    //GLuint geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
-    //sptr = geometry_glsl;
-    //glShaderSource(geometryShader, 1, &sptr, &geometry_glsl_len);
-    //glCompileShader(geometryShader);
-    //// Check for compile time errors
-    //glGetShaderiv(geometryShader, GL_COMPILE_STATUS, &success);
-    //if (!success)
-    //{
-    //    glGetShaderInfoLog(geometryShader, LOGSIZE, NULL, infoLog);
-    //    std::cout << "ERROR::SHADER::GEOMETRY::COMPILATION_FAILED\n" << infoLog << std::endl;
-    //}
+#if GEOMETRY
+    // Geometry shader
+    GLuint geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
+    sptr = geometry_glsl;
+    glShaderSource(geometryShader, 1, &sptr, &geometry_glsl_len);
+    glCompileShader(geometryShader);
+    // Check for compile time errors
+    glGetShaderiv(geometryShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(geometryShader, LOGSIZE, NULL, infoLog);
+        std::cout << "ERROR::SHADER::GEOMETRY::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+#endif
 
 #if TESSELATION
     // Tesselation Control shader
@@ -248,11 +356,11 @@ int main() {
     //GLint mvpLoc = glGetUniformLocation(shaderProgram, "mvp");
     //GLint rotationLoc = glGetUniformLocation(shaderProgram, "rotation");
     auto originTime = std::chrono::high_resolution_clock::now();
-
-    while(shouldContinue()) {
+    float uTime = 0.0f;
+    while(shouldContinue(uTime)) {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
-	float uTime = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - originTime).count();
+	uTime = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - originTime).count();
 	//glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(20.0f, 20.0f, 20.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(1.0f, 0.0f, 1.0f));
 	//glm::mat4 mvp = projectionMat * glm::lookAt(glm::vec3(3.0f, 3.0f, 3.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));// * glm::rotate(glm::mat4(1.0f), uTime / 500.0f, glm::vec3(1.0f, 0.0f, 1.0f));
 	//glm::mat4 rotationGeometry = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 1.0f, 1.0f));
