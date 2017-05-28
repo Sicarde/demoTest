@@ -14,8 +14,8 @@
 //#define RESOLUTIONY 1800
 
 ////1080p
-//#define RESOLUTIONX 1920
-//#define RESOLUTIONY 1080
+#define RESOLUTIONX 1920
+#define RESOLUTIONY 1080
 //// half 1080p
 //#define RESOLUTIONX 960
 //#define RESOLUTIONY 420
@@ -23,8 +23,8 @@
 //#define RESOLUTIONX 1600
 //#define RESOLUTIONY 900
 //720p
-#define RESOLUTIONX 1280
-#define RESOLUTIONY 720
+//#define RESOLUTIONX 1280
+//#define RESOLUTIONY 720
 
 #ifdef GLFW_MODE
 #include <GLFW/glfw3.h>
@@ -201,14 +201,14 @@ GLuint initGL() {
     //glDeleteShader(geometryShader);
 
     GLfloat vertices[] = {
-	-1.0f,  1.0f,  // Top Left
-	1.0f,  1.0f, // Top Right
-	1.0f, -1.0f, // Bottom Right
-	-1.0f, -1.0f,// Bottom Left
+	-1.0f,  1.0f, 0.0f,  // Top Left
+	1.0f,  1.0f, 0.0f, // Top Right
+	1.0f, -1.0f, 0.0f, // Bottom Right
+	-1.0f, -1.0f, 0.0f// Bottom Left
     };
     GLuint indices[] = {  // Note that we start from 0!
 	0, 1, 2,
-	0, 2, 3
+	0, 3, 2
     };
 
     //GLuint indices[] = {  // Note that we start from 0!
@@ -230,7 +230,7 @@ GLuint initGL() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
 
     //glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
