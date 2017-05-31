@@ -45,8 +45,7 @@ GLXContext ctx;
 Colormap cmap;
 void initWin() {
     display = XOpenDisplay(NULL);
-    static int visual_attribs[] =
-    {
+    static int visual_attribs[] = {
 	GLX_X_RENDERABLE    , True,
 	GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
 	GLX_RENDER_TYPE     , GLX_RGBA_BIT,
@@ -89,7 +88,7 @@ void initWin() {
 	}
 	XFree( vi );
     }
-    GLXFBConfig bestFbc = fbc[ best_fbc ];
+    GLXFBConfig bestFbc = fbc[best_fbc];
     XFree( fbc );
     // Get a visual
     XVisualInfo *vi = glXGetVisualFromFBConfig(display, bestFbc);
@@ -105,7 +104,7 @@ void initWin() {
     // Get the default screen's GLX extension list
     const char *glxExts = glXQueryExtensionsString(display, DefaultScreen(display));
     glXCreateContextAttribsARBProc glXCreateContextAttribsARB = 0;
-    glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc) glXGetProcAddressARB( (const GLubyte *) "glXCreateContextAttribsARB" );
+    glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc) glXGetProcAddressARB((const GLubyte *) "glXCreateContextAttribsARB");
 
     ctx = 0;
     static bool ctxErrorOccurred = false;

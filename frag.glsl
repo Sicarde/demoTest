@@ -2,6 +2,7 @@
 
 #define colour vec3
 #define distColour vec4
+#define PI 3.14159
 
 in vec3 position;
 out vec3 fragColor;
@@ -9,6 +10,58 @@ varying vec2 v_texcoord;
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform vec2 u_mouse;
+
+//-------------------------- PBR functions -----------------------
+
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+vec3 fresnelSchlick(float cosTheta) {
+    return fresnelSchlick(cosTheta, vec3(0.04));
+}
+
+float fresnel(vec3 normal, vec3 dir, float IOR) {
+    float R0 = ((-1/(IOR+2.6)) * 2.4) + 0.75;
+    return  R0 + (1.0f - R0) * exp(((1.0f - dot(-dir, normal)) - 1) * 4.6);
+}
+
+vec3 orenNayar(vec3 lightDirection, vec3 viewDirection, vec3 surfaceNormal, float roughness, vec3 albedo) {
+    float NdotL = dot(lightDirection, surfaceNormal);
+    float NdotV = dot(surfaceNormal, viewDirection);
+
+    float s = dot(lightDirection, viewDirection) - NdotL * NdotV;
+    float t = mix(1.0, max(NdotL, NdotV), step(0.0, s));
+
+    float sigma2 = roughness * roughness;
+    vec3 A = 1.0 + sigma2 * (albedo / (sigma2 + 0.13) + 0.5 / (sigma2 + 0.33));
+    float B = 0.45 * sigma2 / (sigma2 + 0.09);
+
+    return albedo * max(0.0, NdotL) * (A + B * s / t) / PI;
+}
+
+float ggx(vec3 surfaceNormal, vec3 viewDir, vec3 lightDir, float roughness, float F0) { // Trowbridge-Reitz
+    float alpha = roughness * roughness;
+    vec3 H = normalize(lightDir - viewDir);
+    float dotLH = max(0.0, dot(lightDir, H));
+    float dotNH = max(0.0, dot(surfaceNormal, H));
+    float dotNL = max(0.0, dot(surfaceNormal, lightDir));
+    float alphaSqr = alpha * alpha;
+    float denom = dotNH * dotNH * (alphaSqr - 1.0) + 1.0;
+    float D = alphaSqr / (3.141592653589793 * denom * denom);
+    float F = F0 + (1.0 - F0) * pow(1.0 - dotLH, 5.0);
+    //float F = fresnelSchlick(dotLH, vec3(F0, F0, F0));
+    float k = 0.5 * alpha;
+    float k2 = k * k;
+    return dotNL * D * F / (dotLH*dotLH*(1.0-k2)+k2);
+}
+
+struct Light {
+    vec3 pos;
+    vec3 color;
+};
+
+//-------------------------- PBR functions END -------------------
+
 
 mat3 setCamera( in vec3 ro, in vec3 ta, float cr )
 {
@@ -35,7 +88,7 @@ float udBox( vec3 p, vec3 b )
 }
 
 distColour scene(in vec3 pos) {
-    distColour r = distColour(sdSphere(pos - vec3(0.0, cos(u_time), 0.0), 0.25), colour(0.9, 0.2, 0.2));
+    distColour r = distColour(sdSphere(pos - vec3(0.0, cos(u_time), 0.0), sin(u_time)), colour(0.9, 0.2, 0.2));
     r = add(r, distColour(sdSphere(pos - vec3(sin(u_time), 0.25, 0.0), 0.25), colour(0.2, 1.0, 0.4)));
     r = add(r, distColour(udRoundBox(pos - vec3(0.0, -1.0, 0.0), vec3(2., 0.2, 2.2), 0.1), colour(0.3, 0.7, 0.8)));
     r = add(r, distColour(udBox(pos - vec3 (-2.0, 0.0, 0.0), vec3(0.1, 5.0, 4.0)), colour(0.1,0.8, 0.3)));
@@ -123,7 +176,20 @@ void main() {
     fragColor = vec3(complexity); return;
 #endif
     //data.y = mix(reflection.y, data.y, (sin(u_time) / 2.0) + 0.5); // testing reflections
-    data.yzw = mix(reflection.yzw, data.yzw, 0.6); // testing reflections
-    fragColor = data.yzw;
-    fragColor = mix(fragColor * 0.4, fragColor, AO);
+    //data.yzw = mix(reflection.yzw, data.yzw, (sin(u_time) / 2.0) + 0.5); // testing reflections
+
+
+    //orenNayar(); // diffuse only
+    //ggx(); // diffuse only
+
+    //fragColor = data.yzw;
+    //fragColor = mix(fragColor * 0.4, fragColor, AO);
+
+    Light l1;
+    l1.pos = vec3(0.75, 0.6, 0.2);
+    l1.color = vec3(0.8, 0.8, 0.8);
+    float roughness = 0.1;
+    float ggx = ggx(normal, dir, normalize(l1.pos - hitPosition ), 1.0, 0.44);
+    vec3 nayar = orenNayar(normalize(l1.pos - hitPosition ), dir, normal, roughness, data.yzw);
+    fragColor = mix(nayar, reflection.yzw, ggx);
 }
