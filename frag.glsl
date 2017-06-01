@@ -11,6 +11,13 @@ uniform float u_time;
 uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 
+struct Light {
+    vec3 pos;
+    vec3 color;
+};
+#define lightSizeArray 1
+Light lights[lightSizeArray];
+
 //-------------------------- PBR functions -----------------------
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
@@ -25,40 +32,91 @@ float fresnel(vec3 normal, vec3 dir, float IOR) {
     return  R0 + (1.0f - R0) * exp(((1.0f - dot(-dir, normal)) - 1) * 4.6);
 }
 
-vec3 orenNayar(vec3 lightDirection, vec3 viewDirection, vec3 surfaceNormal, float roughness, vec3 albedo) {
-    float NdotL = dot(lightDirection, surfaceNormal);
-    float NdotV = dot(surfaceNormal, viewDirection);
-
-    float s = dot(lightDirection, viewDirection) - NdotL * NdotV;
-    float t = mix(1.0, max(NdotL, NdotV), step(0.0, s));
-
-    float sigma2 = roughness * roughness;
-    vec3 A = 1.0 + sigma2 * (albedo / (sigma2 + 0.13) + 0.5 / (sigma2 + 0.33));
-    float B = 0.45 * sigma2 / (sigma2 + 0.09);
-
-    return albedo * max(0.0, NdotL) * (A + B * s / t) / PI;
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float ggx(vec3 surfaceNormal, vec3 viewDir, vec3 lightDir, float roughness, float F0) { // Trowbridge-Reitz
-    float alpha = roughness * roughness;
-    vec3 H = normalize(lightDir - viewDir);
-    float dotLH = max(0.0, dot(lightDir, H));
-    float dotNH = max(0.0, dot(surfaceNormal, H));
-    float dotNL = max(0.0, dot(surfaceNormal, lightDir));
-    float alphaSqr = alpha * alpha;
-    float denom = dotNH * dotNH * (alphaSqr - 1.0) + 1.0;
-    float D = alphaSqr / (3.141592653589793 * denom * denom);
-    float F = F0 + (1.0 - F0) * pow(1.0 - dotLH, 5.0);
-    //float F = fresnelSchlick(dotLH, vec3(F0, F0, F0));
-    float k = 0.5 * alpha;
-    float k2 = k * k;
-    return dotNL * D * F / (dotLH*dotLH*(1.0-k2)+k2);
+
+float DistributionGGX(vec3 N, vec3 H, float roughness) {
+    float a      = roughness*roughness;
+    float a2     = a*a;
+    float NdotH  = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+
+    float nom   = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+
+    return nom / denom;
 }
 
-struct Light {
-    vec3 pos;
-    vec3 color;
-};
+float GeometrySchlickGGX(float NdotV, float roughness) {
+    float r = (roughness + 1.0);
+    float k = (r*r) / 8.0;
+
+    float nom   = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+
+    return nom / denom;
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2  = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1  = GeometrySchlickGGX(NdotL, roughness);
+    return ggx1 * ggx2;
+}
+
+vec3 pbr(vec3 viewDir, vec3 hitPosition, vec3 surfaceNormal, vec3 albedo, vec3 refDir, vec3 refHitPos, vec3 irradiance, float ao, float roughness, float metallic) {
+    vec3 N = surfaceNormal;
+    vec3 V = viewDir;
+
+    vec3 F0 = vec3(0.04); 
+    F0 = mix(F0, albedo, metallic);
+
+    // reflectance equation
+    vec3 Lo = vec3(0.0);
+
+
+    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    //vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0 - metallic;	  
+    vec3 diffuse = irradiance * albedo;
+
+    for(int i = 0; i < lightSizeArray; ++i) {
+	// calculate per-light radiance
+	vec3 L = normalize(lights[i].pos - hitPosition);
+	vec3 H = normalize(V + L);
+	float distance    = length(lights[i].pos - hitPosition);
+	float attenuation = 1.0 / (distance * distance);
+	vec3 radiance     = lights[i].color * attenuation;        
+
+	// cook-torrance brdf
+	float NDF = DistributionGGX(N, H, roughness);        
+	float G   = GeometrySmith(N, V, L, roughness);      
+
+	vec3 nominator    = NDF * G * F;
+	float denominator = 4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001; 
+	vec3 specular     = nominator / denominator;
+
+	// add to outgoing radiance Lo
+	float NdotL = max(dot(N, L), 0.0);                
+	Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
+    }   
+
+    //vec3 ambient = vec3(0.03) * albedo * ao;
+    //vec3 ambient = (kD * diffuse + specular) * ao; 
+    vec3 ambient = (kD * diffuse) * ao; 
+    vec3 color = ambient + Lo;
+
+    color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0/2.2));
+    return color;
+}
 
 //-------------------------- PBR functions END -------------------
 
@@ -161,17 +219,19 @@ void main() {
     vec3 camera = vec3(1.0, 2.0, -5);
     vec2 coord = -1.0 + 2.0 * gl_FragCoord.xy / u_resolution;
     coord.y /= u_resolution.x / u_resolution.y;
-    vec3 dir = setCamera(camera, vec3( -0.5, -0.4, 0.5 ), 0.0) * normalize(vec3(coord, 2.));
+    vec3 viewDir = setCamera(camera, vec3(-0.5, -0.4, 0.5 ), 0.0) * normalize(vec3(coord, 2.));
 
     float complexity;
-    distColour data = castRay(camera, dir, complexity);
+    distColour data = castRay(camera, viewDir, complexity);
 
-    vec3 hitPosition = camera + data.x * dir;
+    vec3 hitPosition = camera + data.x * viewDir;
     vec3 normal = Normal(hitPosition);
     float AO = AO(hitPosition, normal);
     distColour reflection;
     float refComplexity = 1.0f;
-    reflection = castRay(hitPosition, reflect(dir, normal), refComplexity);
+    vec3 refDir = reflect(viewDir, normal);
+    reflection = castRay(hitPosition, refDir, refComplexity);
+    vec3 refHitPos = hitPosition + reflection.x * refDir;
 #if 0
     fragColor = vec3(complexity); return;
 #endif
@@ -179,17 +239,13 @@ void main() {
     //data.yzw = mix(reflection.yzw, data.yzw, (sin(u_time) / 2.0) + 0.5); // testing reflections
 
 
-    //orenNayar(); // diffuse only
-    //ggx(); // diffuse only
 
     //fragColor = data.yzw;
     //fragColor = mix(fragColor * 0.4, fragColor, AO);
 
-    Light l1;
-    l1.pos = vec3(0.75, 0.6, 0.2);
-    l1.color = vec3(0.8, 0.8, 0.8);
-    float roughness = 0.1;
-    float ggx = ggx(normal, dir, normalize(l1.pos - hitPosition ), 1.0, 0.44);
-    vec3 nayar = orenNayar(normalize(l1.pos - hitPosition ), dir, normal, roughness, data.yzw);
-    fragColor = mix(nayar, reflection.yzw, ggx);
+    float roughness = 0.4;
+    float metallic = 0.6;
+    lights[0].pos = vec3(0.9, 0.1, -0.9);
+    lights[0].color = vec3(3.0, 3.0, 10.0);
+    fragColor = pbr(viewDir, hitPosition, normal, data.yzw, refDir, refHitPos, reflection.yzw, AO, roughness, metallic);
 }
