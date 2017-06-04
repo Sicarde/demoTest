@@ -19,6 +19,12 @@ clang++ main.cpp -lSDL2 -lGLEW -lGL -lX11 -lpthread -lXrandr -lXi -std=c++0x -o 
 sstrip demo_sdl2
 clang++ main.cpp -lX11 -lGLEW -lGL -std=c++0x -o demo_X11 -O3 -flto=thin -fuse-ld=gold -DX11_MODE -DDEMONAME="$DemoName"
 sstrip demo_X11
+
+#as --64 demo_asm_X11.s -o /tmp/demo_asm_X11.o
+#ld -m elf_x86_64 -dynamic-linker /lib/ld-linux.so.2 /tmp/demo_asm_X11.o /usr/lib/libGL.so -o demo_asm_X11
+#ldd demo_asm_X11
+#sstrip demo_asm_X11
+
 # www.int21.de/linux4k/
 echo "dd bs=1 skip=61<\$0|gunzip>/tmp/C;chmod +x /tmp/C;/tmp/C;exit" > 64k
 chmod +x 64k

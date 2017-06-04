@@ -68,7 +68,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     return ggx1 * ggx2;
 }
 
-vec3 pbr(vec3 viewDir, vec3 hitPosition, vec3 surfaceNormal, vec3 albedo, vec3 refDir, vec3 refHitPos, vec3 irradiance, float ao, float roughness, float metallic) {
+vec3 pbr(vec3 viewDir, vec3 hitPosition, vec3 surfaceNormal, vec3 albedo, vec3 irradiance, float ao, float roughness, float metallic) {
     vec3 N = surfaceNormal;
     vec3 V = viewDir;
 
@@ -79,13 +79,8 @@ vec3 pbr(vec3 viewDir, vec3 hitPosition, vec3 surfaceNormal, vec3 albedo, vec3 r
     vec3 Lo = vec3(0.0);
 
 
-    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
     //vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
-
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - metallic;	  
-    vec3 diffuse = irradiance * albedo;
+    vec3 kD;
 
     for(int i = 0; i < lightSizeArray; ++i) {
 	// calculate per-light radiance
@@ -98,19 +93,25 @@ vec3 pbr(vec3 viewDir, vec3 hitPosition, vec3 surfaceNormal, vec3 albedo, vec3 r
 	// cook-torrance brdf
 	float NDF = DistributionGGX(N, H, roughness);        
 	float G   = GeometrySmith(N, V, L, roughness);      
+	vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
+
+
+	vec3 kS = F;
+	kD = vec3(1.0) - kS;
+	kD *= 1.0 - metallic;
 
 	vec3 nominator    = NDF * G * F;
 	float denominator = 4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001; 
-	vec3 specular     = nominator / denominator;
+	vec3 brdf = nominator / denominator;
 
 	// add to outgoing radiance Lo
 	float NdotL = max(dot(N, L), 0.0);                
-	Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
+	Lo += (kD * albedo / PI + brdf) * radiance * NdotL; 
     }   
 
     //vec3 ambient = vec3(0.03) * albedo * ao;
     //vec3 ambient = (kD * diffuse + specular) * ao; 
-    vec3 ambient = (kD * diffuse) * ao; 
+    vec3 ambient = (kD * albedo) * ao; 
     vec3 color = ambient + Lo;
 
     color = color / (color + vec3(1.0));
@@ -243,9 +244,9 @@ void main() {
     //fragColor = data.yzw;
     //fragColor = mix(fragColor * 0.4, fragColor, AO);
 
-    float roughness = 0.4;
-    float metallic = 0.6;
+    float roughness = 0.1;
+    float metallic = 0.9;
     lights[0].pos = vec3(0.9, 0.1, -0.9);
     lights[0].color = vec3(3.0, 3.0, 10.0);
-    fragColor = pbr(viewDir, hitPosition, normal, data.yzw, refDir, refHitPos, reflection.yzw, AO, roughness, metallic);
+    fragColor = pbr(viewDir, hitPosition, normal, data.yzw, reflection.yzw, AO, roughness, metallic);
 }
