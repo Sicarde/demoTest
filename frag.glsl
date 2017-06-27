@@ -146,7 +146,9 @@ mat3 setCamera( in vec3 ro, in vec3 ta, float cr )
     vec3 cv = normalize( cross(cu,cw) );
     return mat3( cu, cv, cw );
 }
+
 distColour add(distColour d1, distColour d2) {
+    // return mix(a, b, step(b.x, a.x));
     return (d1.x < d2.x) ? d1 : d2;
 }
 distColour sub(distColour d1, distColour d2) {
@@ -154,6 +156,15 @@ distColour sub(distColour d1, distColour d2) {
 }
 distColour inter(distColour d1, distColour d2) {
     return (d1.x > d2.x) ? d1 : d2;
+}
+float add(float d1, float d2) {
+    return min(d1, d2);
+}
+float sub(float d1, float d2) {
+    return max(d1, -d2);
+}
+float inter(float d1, float d2) {
+    return max(d1, d2);
 }
 
 
@@ -178,10 +189,11 @@ distColour scene(in vec3 pos) {
     //r = add(r, distColour(udBox(pos - vec3 (0.0, 0.0, 2.0), vec3(5.0, 5.0, 0.1)), colour(0.1, 0.0, 0.7)));
 
     distColour r = distColour(udBox(pos - vec3(0.0, -0.9, 0.0), vec3(0.9, 0.1, 9.1)), colour(0.9, 0.9, 0.2));
-    distColour s = distColour(udBox(pos - vec3 (-0.3, sin(u_time), 0.1), vec3(0.2, 0.8, 0.3)), colour(0.1, 0.0, 0.7));
+    distColour s = distColour(udBox(pos - vec3(sin(u_time), -0.3, 0.1), vec3(0.2, 0.8, 0.3)), colour(0.1, 0.0, 0.7));
 
-    return sub(r, s);
-    //return add(s,r);
+    return distColour(sub(r.x, s.x), s.yzw);
+    //return distColour(inter(s.x, r.x), s.yzw);
+    //return distColour(add(s.x, r.x), s.yzw);
 }
 
 vec3 Normal( in vec3 pos )

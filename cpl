@@ -13,7 +13,7 @@ export DemoName=thumper
 
 clang++ main.cpp -lX11 -lGLEW -lGL -o demo -std=c++0x -O3 -flto=thin -fuse-ld=gold -DX11_MODE -DDEMONAME="$DemoName"
 #clang main.c -lX11 -lGLEW -lGL -o demo -flto=thin -fuse-ld=gold -DX11_MODE -DDEMONAME="$DemoName" -g -O0 -nostdlib #SEGV
-#sstrip demo_X11
+sstrip demo
 
 #as --64 demo_asm_X11.s -o /tmp/demo_asm_X11.o
 #ld -m elf_x86_64 -dynamic-linker /lib/ld-linux.so.2 /tmp/demo.o /usr/lib/libGL.so -o demo
@@ -23,4 +23,4 @@ clang++ main.cpp -lX11 -lGLEW -lGL -o demo -std=c++0x -O3 -flto=thin -fuse-ld=go
 # www.int21.de/linux4k/
 echo "dd bs=1 skip=61<\$0|gunzip>/tmp/C;chmod +x /tmp/C;/tmp/C;exit" > 64k
 chmod +x 64k
-gzip -cn9 demo_X11 >> 64k
+gzip -cn9 demo >> 64k
