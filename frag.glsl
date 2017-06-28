@@ -195,7 +195,17 @@ distColour scene(in vec3 pos) {
     float box =  Box(roadPos, vec3(0.9, 0.3, 9.0));
     float obox = Box(roadPos + vec3(0.0, -0.5, 0.0), vec3(0.8, 0.4, 9.1));
 
-    return distColour(sub(obox.x, box.x), colour(0.0, 1 - abs(sin(roadPos.x * 4.0f) - sin(u_time)), 0.8));
+
+    colour roadColour = vec3(0.0, 0.0, 0.0);
+    if (roadPos.x < 0.75f && roadPos.x > -0.75f) {
+	lowp float time = u_time * ((sin(u_time) + (sin(2.0f * u_time) / 2.0f)) / 2.0f) + 0.2;
+	roadColour.y = max(sin((abs(roadPos.x * 5.0f) - time)), 0.0f);
+	roadColour.y = pow((roadColour.y), 5);
+	roadColour.xz = vec2(mix(0.0, 1.0, smoothstep(0.5, 1.0, roadColour.y)));
+    }
+
+    //return distColour(sub(obox.x, box.x), colour(0.0, 1 - abs(sin(roadPos.x * 4.0f) - sin(u_time)), 0.8));
+    return distColour(sub(obox.x, box.x), roadColour + colour(0.1, 0.1, 0.7));
 }
 
 vec3 Normal( in vec3 pos )
