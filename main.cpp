@@ -204,7 +204,7 @@ int main() {
 	//asm ("movl $96,%eax\n" "mov %0,%rdi\n" "mov $0,%rsi\n" : "=r" (&stamp)); // gettimeofday syscall
 	gettimeofday(&stamp, 0); // 96
 	uTime = (float((stamp.tv_usec - base.tv_usec) / 1000000.0f)) + float(stamp.tv_sec - base.tv_sec);
-	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+	glClearColor(0.9f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glUniform1f(timeLoc, uTime);

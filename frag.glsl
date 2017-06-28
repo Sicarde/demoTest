@@ -1,5 +1,4 @@
-#version 400 core
-
+#version 430
 #define colour vec3
 #define distColour vec4
 #define PI 3.14159

@@ -7,6 +7,7 @@ layout(lines) in;
 layout(triangle_strip, max_vertices = 240) out; //too much but enough for whatever
 
 out vec3 position;
+out vec3 normal;
 //in int geometryGenerateSomething[3];
 
 uniform float u_time;
@@ -21,6 +22,7 @@ vec3 GetNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) { //currently not used 
 void emitLine(vec4 v1, vec4 v2) {
     gl_Position = v1 * rotation;
     position = gl_Position.xyz;
+    normal = vec3(0.0);
     EmitVertex();
     gl_Position = v2 * rotation;
     position = gl_Position.xyz;
@@ -31,6 +33,7 @@ void emitLine(vec4 v1, vec4 v2) {
 void emitTriangle(vec4 v1, vec4 v2, vec4 v3) {
     gl_Position = v1 * rotation;
     position = gl_Position.xyz;
+    normal = GetNormal(v1.xyz, v2.xyz, v3.xyz);
     EmitVertex();
     gl_Position = v2 * rotation;
     position = gl_Position.xyz;
@@ -43,7 +46,7 @@ void emitTriangle(vec4 v1, vec4 v2, vec4 v3) {
 
 void emitQuad(vec4 v1, vec4 v2, vec4 v3, vec4 v4) {
     emitTriangle(v1, v2, v3);
-    emitTriangle(v2, v3, v4);
+    emitTriangle(v3, v2, v4);
 }
 
 vec4 ampersandCurve(vec2 p) { //cf wikipedia
@@ -95,16 +98,20 @@ void extrudeLine(vec4 p1, vec4 p2, vec4 offset, bool close) {
 }
 
 vec4 whateverCurve(float x) {
-    float y = 1/x + 1.0;
-    return vec4(x, y, 0.0, 0.0);
+    float y = exp(x) + 1.0;
+    return vec4(x, y, y, 0.0);
 }
 
 void extrudeAlongCurve(int nbEx, float start, float stepSize) {
     vec4 pointA = gl_in[0].gl_Position;
     vec4 pointB = gl_in[1].gl_Position;
-    for (int i = 0; i < nbEx; i++) {
+    for (int i = 0; i < nbEx; ++i) {
 	vec4 size = whateverCurve(float(i) * stepSize + start);
-	extrudeLine(pointA, pointB, size, false);
+	//if (i == 0 || i == nbEx) {
+	    extrudeLine(pointA, pointB, size, false);
+	//} else {
+	//    extrudeLine(pointA, pointB, size, false);
+	//}
 	pointA += size;
 	pointB += size;
     }
@@ -119,5 +126,5 @@ void main() {
     //emitTriangle(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);
     //emitLine(gl_in[0].gl_Position, gl_in[1].gl_Position); //carefull with geometry output
     //extrudeLine(gl_in[0].gl_Position, gl_in[1].gl_Position, vec4(0.0, 0.1, 0.1, 0.0), false);
-    extrudeAlongCurve(5, 0.5, 0.5);
+    extrudeAlongCurve(20, -16, 1);
 }
