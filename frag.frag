@@ -4,8 +4,8 @@
 #define PI 3.14159
 
 in vec3 position;
+in vec2 v_texcoord;
 out vec3 fragColor;
-varying vec2 v_texcoord;
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform vec2 u_mouse;
@@ -95,7 +95,7 @@ vec3 HeTorranceSillionGreenberg(vec3 N, vec3 H, vec3 V, vec3 L, vec3 albedo, flo
     return (F * F * exp(-G) * S) / (cos(dot(N, H)) * dw) * delta;
 }
 
-vec3 pbr(lowp vec3 viewDir, lowp vec3 hitPosition, lowp vec3 surfaceNormal, vec3 albedo, vec3 irradiance, lowp float ao, lowp float roughness, lowp float metallic) {
+vec3 pbr(lowp vec3 viewDir, lowp vec3 hitPosition, lowp vec3 surfaceNormal, vec3 albedo, vec3 irradiance, colour ao, lowp float roughness, lowp float metallic) {
     vec3 N = surfaceNormal;
     vec3 V = viewDir;
 
@@ -145,14 +145,6 @@ mat3 setCamera(in lowp vec3 ro, in lowp vec3 ta, lowp float cr) {
     return mat3( cu, cv, cw );
 }
 
-/*
-// primitive = SDF functions
-vec3 rotTrans(vec3 p, mat4 m) {
-    vec3 q = invert(m)*p;
-    return primitive(q);
-}
-*/
-
 distColour add(distColour d1, distColour d2) {
     // return mix(a, b, step(b.x, a.x));
     return (d1.x < d2.x) ? d1 : d2;
@@ -196,50 +188,47 @@ distColour scene(in vec3 pos) {
 
 
     colour roadColour = vec3(0.0, 0.0, 0.0);
-    if (roadPos.x < 0.75f && roadPos.x > -0.75f) {
+    if (roadPos.x < 0.77f && roadPos.x > -0.77f) {
 	lowp float time = u_time * ((sin(u_time) + (sin(2.0f * u_time) / 2.0f)) / 2.0f) + 0.2;
 	roadColour.y = max(sin((abs(roadPos.x * 5.0f) - time)), 0.0f);
 	roadColour.y = pow((roadColour.y), 5);
 	roadColour.xz = vec2(mix(0.0, 1.0, smoothstep(0.5, 1.0, roadColour.y)));
+        roadColour *= 100.0f;
     }
 
     //return distColour(sub(obox.x, box.x), colour(0.0, 1 - abs(sin(roadPos.x * 4.0f) - sin(u_time)), 0.8));
     return distColour(sub(obox.x, box.x), roadColour + colour(0.1, 0.1, 0.7));
 }
 
-vec3 Normal( in vec3 pos )
-{
+vec3 Normal(in vec3 pos) {
     vec2 e = vec2(1.0,-1.0)*0.5773*0.0005;
     return normalize(e.xyy*scene(pos + e.xyy).x + 
 	    e.yyx*scene(pos + e.yyx).x + 
 	    e.yxy*scene(pos + e.yxy).x + 
 	    e.xxx*scene(pos + e.xxx).x );
-    /*
-       vec3 eps = vec3( 0.0005, 0.0, 0.0 );
-       vec3 nor = vec3(
-       map(pos+eps.xyy).x - map(pos-eps.xyy).x,
-       map(pos+eps.yxy).x - map(pos-eps.yxy).x,
-       map(pos+eps.yyx).x - map(pos-eps.yyx).x );
-       return normalize(nor);
-     */
 }
 
-lowp float AO(in vec3 pos, in vec3 nor) {
+colour AO(in vec3 pos, in vec3 nor) {
     lowp float occ = 0.0;
     lowp float sca = 1.0;
+    distColour dd;
     for( int i=0; i<5; i++ )
     {
 	lowp float hr = 0.01 + 0.12*float(i)/4.0;
 	lowp vec3 aopos =  nor * hr + pos;
-	lowp float dd = scene(aopos).x;
-	occ += -(dd-hr)*sca;
+	dd = scene(aopos);
+	occ += -(dd.x-hr)*sca;
 	sca *= 0.95;
     }
-    return clamp(1.0 - 3.0 * occ, 0.0, 1.0);
+    if (length(dd.yzw) > 1.0f) {
+        return dd.yzw * 3;
+    } else {
+        return clamp(1.0 - 3.0 * occ, 0.0, 1.0).xxx;
+    }
 }
 
 //#define MAX_RAYMARCH_ITERATIONS 48 // enough for tests
-#define MAX_RAYMARCH_ITERATIONS 96 // profuction level
+#define MAX_RAYMARCH_ITERATIONS 128 // production level
 // IQ Raymarching www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
 distColour castRay(in vec3 rayOrigin, in vec3 rayDirection, out lowp float complexity) {
     const lowp float depthMin = 1.0;
@@ -282,7 +271,7 @@ void main() {
 
     vec3 hitPosition = camera + data.x * viewDir;
     vec3 normal = Normal(hitPosition);
-    lowp float AO = AO(hitPosition, normal);
+    colour AO = AO(hitPosition, normal);
     distColour reflection;
     lowp float refComplexity = 1.0f;
     vec3 refDir = reflect(viewDir, normal);
@@ -304,4 +293,5 @@ void main() {
     lights[0].pos = vec3(0.9, 0.1, -0.9);
     lights[0].color = vec3(3.0, 3.0, 10.0);
     fragColor = pbr(viewDir, hitPosition, normal, data.yzw, reflection.yzw, AO, roughness, metallic);
+    //fragColor = AO;
 }

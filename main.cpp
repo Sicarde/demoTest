@@ -11,9 +11,9 @@
 //#define RESOLUTIONX 2280
 //#define RESOLUTIONY 1800
 
-////1080p
-//#define RESOLUTIONX 1920
-//#define RESOLUTIONY 1080
+//1080p
+#define RESOLUTIONX 1920
+#define RESOLUTIONY 1080
 //// half 1080p
 //#define RESOLUTIONX 960
 //#define RESOLUTIONY 420
@@ -21,8 +21,8 @@
 //#define RESOLUTIONX 1600
 //#define RESOLUTIONY 900
 //720p
-#define RESOLUTIONX 1280
-#define RESOLUTIONY 720
+//#define RESOLUTIONX 1280
+//#define RESOLUTIONY 720
 
 #define END 10
 
@@ -120,9 +120,9 @@ short shouldContinue(float time) {
 	glXMakeCurrent(display, 0, 0 );
 	glXDestroyContext(display, ctx);
 
-	XDestroyWindow( display, win );
-	XFreeColormap( display, cmap );
-	XCloseDisplay( display );
+	XDestroyWindow(display, win );
+	XFreeColormap(display, cmap );
+	XCloseDisplay(display);
 	return 0;
     }
 }
@@ -135,12 +135,12 @@ GLuint initGL() {
     glewExperimental = GL_TRUE;
     glewInit();
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    const GLchar* sptr = vert_glsl;
-    glShaderSource(vertexShader, 1, &sptr, &vert_glsl_len);
+    const GLchar* sptr = vert_vert;
+    glShaderSource(vertexShader, 1, &sptr, &vert_vert_len);
     glCompileShader(vertexShader);
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    sptr = frag_glsl;
-    glShaderSource(fragmentShader, 1, &sptr, &frag_glsl_len);
+    sptr = frag_frag;
+    glShaderSource(fragmentShader, 1, &sptr, &frag_frag_len);
     glCompileShader(fragmentShader);
 
     // Link shaders
