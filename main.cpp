@@ -7,13 +7,13 @@
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
-// retina
-//#define RESOLUTIONX 2280
-//#define RESOLUTIONY 1800
+//retina
+#define RESOLUTIONX 2280
+#define RESOLUTIONY 1800
 
 //1080p
-#define RESOLUTIONX 1920
-#define RESOLUTIONY 1080
+//#define RESOLUTIONX 1920
+//#define RESOLUTIONY 1080
 //// half 1080p
 //#define RESOLUTIONX 960
 //#define RESOLUTIONY 420
@@ -204,7 +204,7 @@ int main() {
 	//asm ("movl $96,%eax\n" "mov %0,%rdi\n" "mov $0,%rsi\n" : "=r" (&stamp)); // gettimeofday syscall
 	gettimeofday(&stamp, 0); // 96
 	uTime = (float((stamp.tv_usec - base.tv_usec) / 1000000.0f)) + float(stamp.tv_sec - base.tv_sec);
-	glClearColor(0.9f, 0.3f, 0.3f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glUniform1f(timeLoc, uTime);

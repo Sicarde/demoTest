@@ -9,15 +9,9 @@ out vec3 fragColor;
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform vec2 u_mouse;
-
-struct Light {
-    vec3 pos;
-    vec3 color;
-};
-#define lightSizeArray 1
-Light lights[lightSizeArray];
-
-//-------------------------- PBR functions -----------------------
+float speed;
+vec3 camera;
+vec3 roadPos;
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
@@ -26,116 +20,14 @@ vec3 fresnelSchlick(float cosTheta) {
     return fresnelSchlick(cosTheta, vec3(0.04));
 }
 
-float fresnel(vec3 normal, vec3 dir, float IOR) {
+float fresnel(vec3 normal, vec3 viewDir, float IOR) {
     float R0 = ((-1/(IOR+2.6)) * 2.4) + 0.75;
-    return  R0 + (1.0f - R0) * exp(((1.0f - dot(-dir, normal)) - 1) * 4.6);
+    return  R0 + (1.0f - R0) * exp(((1.0f - dot(-viewDir, normal)) - 1) * 4.6);
 }
 
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
-
-
-float DistributionGGX(vec3 N, vec3 H, float roughness) {
-    float a      = roughness*roughness;
-    float a2     = a*a;
-    float NdotH  = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH*NdotH;
-
-    float nom   = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
-
-    return nom / denom;
-}
-
-float GeometrySchlickGGX(float NdotV, float roughness) {
-    float r = (roughness + 1.0);
-    float k = (r*r) / 8.0;
-
-    float nom   = NdotV;
-    float denom = NdotV * (1.0 - k) + k;
-
-    return nom / denom;
-}
-
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx2  = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1  = GeometrySchlickGGX(NdotL, roughness);
-    return ggx1 * ggx2;
-}
-
-vec3 cookTorrance(vec3 N, vec3 H, vec3 V, vec3 L, float roughness, vec3 F) {
-
-    float NDF = DistributionGGX(N, H, roughness);        
-    float G   = GeometrySmith(N, V, L, roughness);      
-
-    vec3 DFG = NDF * G * F;
-    return DFG / (4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001);
-}
-
-vec3 HeTorranceSillionGreenberg(vec3 N, vec3 H, vec3 V, vec3 L, vec3 albedo, float roughness, float metallic, float IOR) {
-    //vec3 F0 = mix(vec3(0.04), albedo, metallic);
-    // IOR examples
-    //water 1.33 
-    //plastic 1.45 
-    //glass 1.5-1.8 
-    //diamond 2.4 
-    //compound materials like wood, stone, concrete etc 3-6 
-    //metals 20-100 
-    float F = fresnel(N, V, IOR);
-    float patchDiameter = 0.5f; // ??
-    float tetha = atan(patchDiameter) * 2;
-    float dw = sin(tetha) * patchDiameter * patchDiameter;
-    float S = GeometrySmith(N, V, L, roughness); // micro shadowing function
-    float G = 1.0f; // ??
-    vec3 delta = vec3(1.0f);
-    return (F * F * exp(-G) * S) / (cos(dot(N, H)) * dw) * delta;
-}
-
-vec3 pbr(lowp vec3 viewDir, lowp vec3 hitPosition, lowp vec3 surfaceNormal, vec3 albedo, vec3 irradiance, colour ao, lowp float roughness, lowp float metallic) {
-    vec3 N = surfaceNormal;
-    vec3 V = viewDir;
-
-
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
-    // reflectance equation
-    vec3 Lo = vec3(0.0);
-
-    vec3 kD;
-    for(int i = 0; i < lightSizeArray; ++i) {
-	// calculate per-light radiance
-	vec3 L = normalize(lights[i].pos - hitPosition);
-	vec3 H = normalize(V + L);
-	float distance    = length(lights[i].pos - hitPosition);
-	float attenuation = 1.0 / (distance * distance);
-	vec3 radiance     = lights[i].color * attenuation;        
-
-	vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
-	vec3 brdf = cookTorrance(N, H, V, L, roughness, F);
-	//vec3 brdf = HeTorranceSillionGreenberg(N, H, V, L, albedo, roughness, metallic, 1.45);
-
-	// add to outgoing radiance Lo
-	float NdotL = max(dot(N, L), 0.0);                
-	vec3 kS = F;
-	kD = vec3(1.0) - kS;
-	kD *= 1.0 - metallic;
-	Lo += (kD * albedo / PI + brdf) * radiance * NdotL; 
-    }   
-
-    vec3 ambient = vec3(0.03) * albedo * ao;
-    //vec3 ambient = (kD * diffuse + specular) * ao; 
-    //vec3 ambient = (irradiance * kD * albedo) * ao; 
-    vec3 color = ambient + Lo;
-
-    color = color / (color + vec3(1.0));
-    color = pow(color, vec3(1.0/2.2));
-    return color;
-}
-
-//-------------------------- PBR functions END -------------------
 
 mat3 setCamera(in lowp vec3 ro, in lowp vec3 ta, lowp float cr) {
     vec3 cw = normalize(ta-ro);
@@ -181,7 +73,7 @@ lowp float Box(lowp vec3 p, lowp vec3 b) {
 
 distColour scene(in vec3 pos) {
     // road
-    vec3 roadPos = pos - vec3(sin(pos.z) / 2.0f, -1.6, 0.0);
+    roadPos = pos - vec3(sin(pos.z) / 2.0f, -1.6, 0.0);
     roadPos.z = mod(roadPos.z, 2.0f);
     float box =  Box(roadPos, vec3(0.9, 0.3, 9.0));
     float obox = Box(roadPos + vec3(0.0, -0.5, 0.0), vec3(0.8, 0.4, 9.1));
@@ -190,14 +82,14 @@ distColour scene(in vec3 pos) {
     colour roadColour = vec3(0.0, 0.0, 0.0);
     if (roadPos.x < 0.77f && roadPos.x > -0.77f) {
 	lowp float time = u_time * ((sin(u_time) + (sin(2.0f * u_time) / 2.0f)) / 2.0f) + 0.2;
-	roadColour.y = max(sin((abs(roadPos.x * 5.0f) - time)), 0.0f);
-	roadColour.y = pow((roadColour.y), 5);
-	roadColour.xz = vec2(mix(0.0, 1.0, smoothstep(0.5, 1.0, roadColour.y)));
-        roadColour *= 100.0f;
+	roadColour.b = max(sin((abs(roadPos.x * 5.0f) - time)), 0.0f);
+	roadColour.b = pow((roadColour.b), 5);
+	roadColour.rg = vec2(mix(0.0, 1.0, smoothstep(0.5, 1.0, roadColour.b)));
+        roadColour *= 2.0f;
     }
-
-    //return distColour(sub(obox.x, box.x), colour(0.0, 1 - abs(sin(roadPos.x * 4.0f) - sin(u_time)), 0.8));
-    return distColour(sub(obox.x, box.x), roadColour + colour(0.1, 0.1, 0.7));
+    distColour road = distColour(sub(obox.x, box.x), roadColour + colour(0.1, 0.1, 0.4));
+    distColour character = distColour(sdSphere(pos - vec3(sin(pos.z) / 2.0f, -1., camera.z + 10.0), 0.4), colour(0.3));
+    return add(road, character);
 }
 
 vec3 Normal(in vec3 pos) {
@@ -220,15 +112,16 @@ colour AO(in vec3 pos, in vec3 nor) {
 	occ += -(dd.x-hr)*sca;
 	sca *= 0.95;
     }
-    if (length(dd.yzw) > 1.0f) {
-        return dd.yzw * 3;
+    float ao = 1.0 - 3.0 * occ;
+    if (length(dd.yzw) > 1.0f && ao < 1.) {
+        return dd.yzw * (1 - ao); 
     } else {
-        return clamp(1.0 - 3.0 * occ, 0.0, 1.0).xxx;
+        return clamp(ao, 0.0, 1.0).xxx;
     }
 }
 
 //#define MAX_RAYMARCH_ITERATIONS 48 // enough for tests
-#define MAX_RAYMARCH_ITERATIONS 128 // production level
+#define MAX_RAYMARCH_ITERATIONS 300 // production level
 // IQ Raymarching www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
 distColour castRay(in vec3 rayOrigin, in vec3 rayDirection, out lowp float complexity) {
     const lowp float depthMin = 1.0;
@@ -251,7 +144,7 @@ distColour castRay(in vec3 rayOrigin, in vec3 rayDirection, out lowp float compl
     complexity /= MAX_RAYMARCH_ITERATIONS;
 
     const lowp float depthFadeSize = 20.0f;
-    if (depth > depthMax) {
+    if (depth >= depthMax) {
 	m *= 0.0f;
     } else if (depth > (depthMax - 20)) {
 	m *= smoothstep(depthMax, depthMax - 20, depth);
@@ -260,38 +153,41 @@ distColour castRay(in vec3 rayOrigin, in vec3 rayDirection, out lowp float compl
 }
 
 void main() {
-    //float d = sdSphere(vec3(10, 0.0, 0.0), 5);
-    vec3 camera = vec3(1.0, 2.0, -5);
+    speed = 1; // default
+    highp float baseTime = u_time * speed;
+    
+    camera = vec3(0.0, 0.3, baseTime);
     vec2 coord = -1.0 + 2.0 * gl_FragCoord.xy / u_resolution;
     coord.y /= u_resolution.x / u_resolution.y;
-    vec3 viewDir = setCamera(camera, vec3(-0.5, -0.4, 0.5 ), 0.0) * normalize(vec3(coord, 2.));
+    vec3 viewDir = setCamera(camera, camera + vec3(0.0, -2.5, 20.0), 0.0) * normalize(vec3(coord, 2.));
 
     lowp float complexity;
     distColour data = castRay(camera, viewDir, complexity);
 
     vec3 hitPosition = camera + data.x * viewDir;
-    vec3 normal = Normal(hitPosition);
-    colour AO = AO(hitPosition, normal);
+    vec3 normal = vec3(0.0f);
+    colour ao = vec3(1.0);
     distColour reflection;
     lowp float refComplexity = 1.0f;
-    vec3 refDir = reflect(viewDir, normal);
-    reflection = castRay(hitPosition, refDir, refComplexity);
-    vec3 refHitPos = hitPosition + reflection.x * refDir;
+    if (data.x < 59.0) {
+        normal = Normal(hitPosition);
+        ao = AO(hitPosition, normal);
+        vec3 refDir = reflect(viewDir, normal);
+        reflection = castRay(hitPosition, refDir, refComplexity);
+        //vec3 refHitPos = hitPosition + reflection.x * refDir;
+    } else {
+        reflection = distColour(60.0f, 0.0, 0.0, .0);
+    }
 #if 0
     fragColor = vec3(complexity); return;
 #endif
     //data.y = mix(reflection.y, data.y, (sin(u_time) / 2.0) + 0.5); // testing reflections
     //data.yzw = mix(reflection.yzw, data.yzw, (sin(u_time) / 2.0) + 0.5); // testing reflections
 
-
-
     //fragColor = data.yzw;
     //fragColor = mix(fragColor * 0.4, fragColor, AO);
 
-    lowp float roughness = 0.1;
-    lowp float metallic = 0.1;
-    lights[0].pos = vec3(0.9, 0.1, -0.9);
-    lights[0].color = vec3(3.0, 3.0, 10.0);
-    fragColor = pbr(viewDir, hitPosition, normal, data.yzw, reflection.yzw, AO, roughness, metallic);
-    //fragColor = AO;
+    lowp float fresnel = fresnel(normal, viewDir, 1.4) + 0.1;
+    fragColor = fresnel.xxx;
+    fragColor = mix(data.yzw, reflection.yzw, fresnel) * ao;
 }
