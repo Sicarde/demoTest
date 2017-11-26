@@ -31,7 +31,7 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-mat3 setCamera(in  vec3 ro, in  vec3 ta,  float cr) {
+mat3 setCamera(in vec3 ro, in vec3 ta, float cr) {
     vec3 cw = normalize(ta-ro);
     vec3 cp = vec3(sin(cr), cos(cr),0.0);
     vec3 cu = normalize( cross(cw,cp) );
@@ -183,6 +183,7 @@ void main() {
     vec2 coord = -1.0 + 2.0 * gl_FragCoord.xy / u_resolution;
     coord.y /= u_resolution.x / u_resolution.y;
     vec3 viewDir = setCamera(camera, camera + vec3(0.0, 0.5, 20.0), 0.0) * normalize(vec3(coord, 2.));
+    viewDir.xz *= sqrt((0.5 * coord) + 1.0);
 
     float complexity;
     distColour data = castRay(camera, viewDir, complexity);

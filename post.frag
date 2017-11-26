@@ -12,7 +12,13 @@ layout (location = 1) uniform vec2 u_resolution;
 layout (location = 2) uniform vec2 u_mouse;
 float speed;
 
+vec2 lens_distortion(vec2 r, float alpha) {
+	return r * (1.0 - alpha * dot(r, r));
+}
+
 void main() {
     vec2 coord = -1.0 + gl_FragCoord.xy / u_resolution;
-    fragColor = texture(gColour, coord).xyz;
+    vec2 remapped = coord * 2.0 + 1.0;
+
+    fragColor = texture(gColour, (lens_distortion(remapped, 0.2) / 2.0) + 0.5).xyz;
 }

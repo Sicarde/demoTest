@@ -7,6 +7,8 @@
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
+#define SUPERSAMPLE 1
+
 //retina
 //#define RESOLUTIONX 2280
 //#define RESOLUTIONY 1800
@@ -150,7 +152,7 @@ void initGL() {
     // - position color buffer
     glGenTextures(1, &gPositionDepth);
     glBindTexture(GL_TEXTURE_2D, gPositionDepth);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, RESOLUTIONX, RESOLUTIONY, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, RESOLUTIONX * SUPERSAMPLE, RESOLUTIONY * SUPERSAMPLE, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPositionDepth, 0);
@@ -158,7 +160,7 @@ void initGL() {
     // - normal color buffer
     glGenTextures(1, &gNormal);
     glBindTexture(GL_TEXTURE_2D, gNormal);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, RESOLUTIONX, RESOLUTIONY, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, RESOLUTIONX * SUPERSAMPLE, RESOLUTIONY * SUPERSAMPLE, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
@@ -166,7 +168,7 @@ void initGL() {
     // - color + specular color buffer
     glGenTextures(1, &gColour);
     glBindTexture(GL_TEXTURE_2D, gColour);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, RESOLUTIONX, RESOLUTIONY, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, RESOLUTIONX * SUPERSAMPLE, RESOLUTIONY * SUPERSAMPLE, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gColour, 0);
@@ -180,7 +182,7 @@ void initGL() {
     unsigned int rboDepth;
     glGenRenderbuffers(1, &rboDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, RESOLUTIONX, RESOLUTIONY);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, RESOLUTIONX * SUPERSAMPLE, RESOLUTIONY * SUPERSAMPLE);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
     // finally check if framebuffer is complete
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -298,7 +300,7 @@ int main() {
 
 	glUseProgram(sceneShader);
 	glUniform1f(sceneTimeLoc, uTime);
-	glUniform2f(sceneResLoc, RESOLUTIONX, RESOLUTIONY);
+	glUniform2f(sceneResLoc, RESOLUTIONX * SUPERSAMPLE, RESOLUTIONY * SUPERSAMPLE);
 	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
