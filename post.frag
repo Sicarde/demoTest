@@ -21,4 +21,7 @@ void main() {
     vec2 remapped = coord * 2.0 + 1.0;
 
     fragColor = texture(gColour, (lens_distortion(remapped, 0.2) / 2.0) + 0.5).xyz;
+
+    //fragColor *= 1.0 - smoothstep(0.65, 1.5, length(remapped));
+    fragColor *= 1.0 - smoothstep(0.15, 1.3, length(remapped));
 }
