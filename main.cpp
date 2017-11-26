@@ -8,12 +8,12 @@
 #define STRINGIZE(s) STRINGIZE2(s)
 
 //retina
-#define RESOLUTIONX 2280
-#define RESOLUTIONY 1800
+//#define RESOLUTIONX 2280
+//#define RESOLUTIONY 1800
 
 //1080p
-//#define RESOLUTIONX 1920
-//#define RESOLUTIONY 1080
+#define RESOLUTIONX 1920
+#define RESOLUTIONY 1080
 //// half 1080p
 //#define RESOLUTIONX 960
 //#define RESOLUTIONY 420

@@ -70,17 +70,72 @@ float Box( vec3 p,  vec3 b) {
     //return length(max(abs(p)-b,0.0)); // unsigned version
 }
 
-distColour tentacle(vec3 pos,  float height) {
-    vec3 c = vec3(1.0, 0.0, 0.0);
-    float radius = mix(0.2, 0.0, max((pos.y - 0.0) / height, 0.0));
-    radius += cos(pos.y * 4.0) / 50.0f;
-    float dist = length(pos.xz) - radius;
+vec3 rotateAroundX(vec3 p, float angle)
+{
+    float c = cos(angle);
+    float s = sin(angle);
+    mat3  m = mat3(1.0, 0.0, 0.0, 0.0, c, -s, 0.0, s, c);
+    return m * p;
+}
+vec3 rotateAroundY(vec3 p, float angle)
+{
+    float c = cos(angle);
+    float s = sin(angle);
+    mat3  m = mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c);
+    return m * p;
+}
+vec3 rotateAroundZ(vec3 p, float angle)
+{
+    float c = cos(angle);
+    float s = sin(angle);
+    mat2  m = mat2(c, -s, s, c);
+    return vec3(m * p.xy, p.z);
+}
+vec3 opTwist(vec3 p, float coef)
+{
+    float c = cos(coef * p.y);
+    float s = sin(coef * p.y);
+    mat2  m = mat2(c, -s, s, c);
+    return vec3(m*p.xz, p.y);
+}
 
+distColour tentacle(vec3 pos, float height) {
+    pos += vec3(-1.0, .0, .0);
+    vec3  pos1 = rotateAroundZ(pos.xzy, sin(u_time) / 2.0 * pos.z);
+    //pos1 = rotateAroundX(pos1, 90.0);
+    //vec3  pos1 = opTwist(rotateAroundY(pos, cos(u_time) / 2.0).xzy, sin(u_time) / 2.0);
+    //vec3  pos1 = opTwist(pos.xzy, sin(u_time) / 2.0);
+
+    float truc = -pos.y * (pos.y + 5);
+    float angle = abs(sin(u_time)) * truc / height;
+    mat3 rot = mat3(cos(angle),-sin(angle), 0.0,
+        	    sin(angle), cos(angle), 0.0,
+        	    0.0,	0.0,	    1.0); //rotate around z
+    //vec3 pos1 = rot * pos;
+    float radius = mix(0.2, 0.0, max(abs(pos1.y) / height, 0.0));
+    radius += cos(pos1.y * 4.0) / 50.0f;
+    float dist = length(pos1.xz) - radius;
+
+    angle = - angle;
+    rot = mat3(cos(angle),-sin(angle), 0.0,
+       	       sin(angle), cos(angle), 0.0,
+       	       0.0,	   0.0,	       1.0); //rotate around z
+    pos = rot * (pos + vec3(4.0, 0.0, 0.0));
+    radius = mix(0.2, 0.0, max(abs(pos.y) / height, 0.0));
+    radius += cos(pos.y * 4.0) / 50.0f;
+    dist = add(dist, length(pos.xz) - radius);
+    vec3 c = vec3(1.0, 0.0, 0.0);
     return distColour(dist, c);
 }
 
 distColour character(vec3 pos) {
     return distColour(sdSphere(pos - vec3(sin(pos.z) / 2.0f, -1., camera.z + 10.0), 0.4), vec3(0.3));
+}
+float sdCone( vec3 p, vec2 c )
+{
+    // c must be normalized
+    float q = length(p.xy);
+    return dot(c,vec2(q,p.z));
 }
 
 distColour scene(in vec3 pos) {
@@ -92,7 +147,7 @@ distColour scene(in vec3 pos) {
     float box =  Box(roadPos, vec3(0.9, 0.3, 9.0));
     float obox = Box(roadPos + vec3(0.0, -0.5, 0.0), vec3(0.8, 0.4, 9.1));
 
-    distColour t = tentacle(vec3(pos.x, roadPos.y, mod(pos.z, 6.0f)) - vec3(1.5, 0.0, 3.0), 4.0);
+    distColour t = tentacle(vec3(pos.x, roadPos.y, mod(pos.z, 6.0f)) - vec3(1.5, 0.0, 3.0), 2.0);
     //return add(t, debugPosCubes);
 
     vec3 roadColour = vec3(0.0, 0.0, 0.0);
@@ -107,7 +162,10 @@ distColour scene(in vec3 pos) {
     distColour character = character(pos);
 
     distColour rc = add(road, character);
+    //distColour coneTest = distColour(sdCone(pos.xzy - vec3(0.2,0.50,-1.0).xzy, vec3(0.8,0.6,0.3).xzy), vec3(0.1, 0.1, 0.4));
+    distColour coneTest = distColour(Box(vec3(vec3(2.0) - mod(rotateAroundZ(pos, 0.5 * pos.y), 4.0)), vec3(0.3)), vec3(0.1, 0.1, 0.4));
     return add(rc, t);
+    //return coneTest;
     //return add(add(rc, t), debugPosCubes);
     //return add(road, character);
 }
