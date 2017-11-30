@@ -1,13 +1,16 @@
-#version 130
+#version 450
 #define distColour vec4
 #define PI 3.14159
 
+layout (location = 0) out vec4 gPositionDepth;
+layout (location = 1) out vec3 gNormal;
+layout (location = 2) out vec3 gColour;
+
 in vec3 position;
-in vec2 v_texcoord;
-out vec3 fragColor;
-uniform float u_time;
-uniform vec2 u_resolution;
-uniform vec2 u_mouse;
+//out vec3 gColour;
+layout (location = 0) uniform float u_time;
+layout (location = 1) uniform vec2 u_resolution;
+layout (location = 2) uniform vec2 u_mouse;
 float speed;
 vec3 camera;
 vec3 roadPos;
@@ -28,7 +31,7 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-mat3 setCamera(in  vec3 ro, in  vec3 ta,  float cr) {
+mat3 setCamera(in vec3 ro, in vec3 ta, float cr) {
     vec3 cw = normalize(ta-ro);
     vec3 cp = vec3(sin(cr), cos(cr),0.0);
     vec3 cu = normalize( cross(cw,cp) );
@@ -199,7 +202,7 @@ vec3 AO(in vec3 pos, in vec3 nor) {
 }
 
 //#define MAX_RAYMARCH_ITERATIONS 48 // enough for tests
-#define MAX_RAYMARCH_ITERATIONS 300 // production level
+#define MAX_RAYMARCH_ITERATIONS 2048 // production level
 // IQ Raymarching www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
 distColour castRay(in vec3 rayOrigin, in vec3 rayDirection, out  float complexity) {
     const  float depthMin = 1.0;
@@ -238,6 +241,7 @@ void main() {
     vec2 coord = -1.0 + 2.0 * gl_FragCoord.xy / u_resolution;
     coord.y /= u_resolution.x / u_resolution.y;
     vec3 viewDir = setCamera(camera, camera + vec3(0.0, 0.5, 20.0), 0.0) * normalize(vec3(coord, 2.));
+    viewDir.xz *= sqrt((0.5 * coord) + 1.0);
 
     float complexity;
     distColour data = castRay(camera, viewDir, complexity);
@@ -257,16 +261,19 @@ void main() {
         reflection = distColour(60.0f, 0.0, 0.0, .0);
     }
 #if 0
-    fragColor = vec3(complexity); return;
+    gColour = vec3(complexity); return;
 #endif
     //data.y = mix(reflection.y, data.y, (sin(u_time) / 2.0) + 0.5); // testing reflections
     //data.yzw = mix(reflection.yzw, data.yzw, (sin(u_time) / 2.0) + 0.5); // testing reflections
 
-    //fragColor = data.yzw;
-    //fragColor = mix(fragColor * 0.4, fragColor, AO);
+    //gColour = data.yzw;
+    //gColour = mix(gColour * 0.4, gColour, AO);
 
     float fresnel = fresnel(normal, viewDir, 1.4) + 0.1;
-    //fragColor = vec3(fresnel);
-    fragColor = mix(data.yzw, reflection.yzw, fresnel) * ao;
+    gColour = vec3(fresnel);
+    gColour = mix(data.yzw, reflection.yzw, fresnel) * ao;
+    gPositionDepth.xyz = camera * (viewDir * data.x);
+    gPositionDepth.w = data.x;
+    gNormal = normal;
 }
 

@@ -1,11 +1,11 @@
-glslangValidator -v && glslangValidator vert.vert && glslangValidator frag.frag
+glslangValidator -v && glslangValidator vert.vert && glslangValidator scene.frag && glslangValidator post.frag
 echo "#include <GL/gl.h>" > shaders.hh
 xxd -i vert.vert >> shaders.hh
 echo "" >> shaders.hh
-xxd -i frag.frag >> shaders.hh
-#xxd -i geometry.glsl >> shaders.hh
-#xxd -i tesselationCtrl.glsl >> shaders.hh
-#xxd -i tesselationEval.glsl >> shaders.hh
+xxd -i scene.frag >> shaders.hh
+echo "" >> shaders.hh
+xxd -i post.frag >> shaders.hh
+
 sed -i 's/char/const GLchar/g' shaders.hh
 sed -i 's/int/const GLint/g' shaders.hh
 sed -i 's/unsigned//g' shaders.hh
