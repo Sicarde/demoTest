@@ -73,8 +73,7 @@ float Box( vec3 p,  vec3 b) {
     //return length(max(abs(p)-b,0.0)); // unsigned version
 }
 
-vec3 rotateAroundX(vec3 p, float angle)
-{
+vec3 rotateAroundX(vec3 p, float angle) {
     float c = cos(angle);
     float s = sin(angle);
     mat3  m = mat3(1.0, 0.0, 0.0, 0.0, c, -s, 0.0, s, c);
@@ -87,48 +86,118 @@ vec3 rotateAroundY(vec3 p, float angle)
     mat3  m = mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c);
     return m * p;
 }
-vec3 rotateAroundZ(vec3 p, float angle)
-{
+vec3 rotateAroundZ(vec3 p, float angle) {
     float c = cos(angle);
     float s = sin(angle);
     mat2  m = mat2(c, -s, s, c);
     return vec3(m * p.xy, p.z);
 }
-vec3 opTwist(vec3 p, float coef)
-{
+vec3 opTwist(vec3 p, float coef) {
     float c = cos(coef * p.y);
     float s = sin(coef * p.y);
     mat2  m = mat2(c, -s, s, c);
     return vec3(m*p.xz, p.y);
 }
+vec2 sdBezier(vec3 A, vec3 B, vec3 C, vec3 pos) {
+    vec3 a = B - A;
+    vec3 b = A - 2.0*B + C;
+    vec3 c = a * 2.0;
+    vec3 d = A - pos;
+    vec2 res;
+    float kk = 1.0 / dot(b,b);
+    float kx = kk * dot(a,b);
+    float ky = kk * (2.0*dot(a,a)+dot(d,b)) / 3.0;
+    float kz = kk * dot(d,a);
+    float p = ky - kx * kx;
+    float p3 = p * p *p;
+    float q = kx * (2.0 * kx * kx - 3.0 * ky) + kz;
+    float h = q * q + 4.0 * p3;
+
+    if(h >= 0.0) {
+        h = sqrt(h);
+        vec2 x = (vec2(h, -h) - q) / 2.0;
+        vec2 uv = sign(x) * pow(abs(x), vec2(1.0/3.0));
+        float t = uv.x + uv.y - kx;
+        t = clamp( t, 0.0, 1.0 );
+        // 1 root
+        vec3 qos = d + (c + b * t) * t;
+        res = vec2( length(qos),t);
+    } else {
+        float z = sqrt(-p);
+        float v = acos( q/(p * z * 2.0) ) / 3.0;
+        float m = cos(v);
+        float n = sin(v)*1.732050808;
+        vec3 t = vec3(m + m, -n - m, n - m) * z - kx;
+        t = clamp( t, 0.0, 1.0 );
+        // 3 roots
+        vec3 qos = d + (c + b * t.x) * t.x;
+        float dis = dot(qos,qos);
+        res = vec2(dis,t.x);
+        qos = d + (c + b * t.y) *t.y;
+        dis = dot(qos,qos);
+        if( dis<res.x ) res = vec2(dis,t.y );
+        qos = d + (c + b * t.z) * t.z;
+        dis = dot(qos,qos);
+        if( dis<res.x ) res = vec2(dis,t.z );
+        res.x = sqrt( res.x );
+    }
+    return res;
+}
 
 distColour tentacle(vec3 pos, float height) {
-    pos += vec3(-1.0, .0, .0);
-    vec3  pos1 = rotateAroundZ(pos.xzy, sin(u_time) / 2.0 * pos.z);
-    //pos1 = rotateAroundX(pos1, 90.0);
-    //vec3  pos1 = opTwist(rotateAroundY(pos, cos(u_time) / 2.0).xzy, sin(u_time) / 2.0);
-    //vec3  pos1 = opTwist(pos.xzy, sin(u_time) / 2.0);
+    vec3 a = vec3(0.0, 0.0,0.0);
+    vec3 b = vec3(1.0, 2.0,0.0);
+    vec3 c = vec3(-abs(cos(u_time + height)) + b.x - 1.5, -abs(sin(u_time + height)) + b.y - 0.5,0.0);
+    vec2 h = sdBezier( a, b, c, pos );
+    float distA = length(pos - a);
+    float distC = length(pos - c);
+    float th = 5.5;//mix(5.5, 0.1, 0.5 * (distC - distA)); //thickness
+    float kh = (th + h.y)/8.0;
+    float ra = 0.3 - 0.28*kh + 0.3*exp(-15.0*kh);
+    float d = h.x - ra;
+    vec2 tentLeft = vec2(0.5 * d, kh);
 
-    float truc = -pos.y * (pos.y + 5);
-    float angle = abs(sin(u_time)) * truc / height;
-    mat3 rot = mat3(cos(angle),-sin(angle), 0.0,
-        	    sin(angle), cos(angle), 0.0,
-        	    0.0,	0.0,	    1.0); //rotate around z
-    //vec3 pos1 = rot * pos;
-    float radius = mix(0.2, 0.0, max(abs(pos1.y) / height, 0.0));
-    radius += cos(pos1.y * 4.0) / 50.0f;
-    float dist = length(pos1.xz) - radius;
+    a = vec3(-3.0, 0.0,0.0);
+    b = vec3(-4.0, 2.0,0.0);
+    c = vec3(abs(cos(u_time + height)) + b.x + 1.5, -abs(sin(u_time + height)) + b.y - 0.5,0.0);
+    distA = length(pos - a);
+    distC = length(pos - c);
+    th = mix(5.5, 0.1, 0.5 * (distC - distA)); //thickness
+    h = sdBezier( a, b, c, pos );
+    kh = (th + h.y)/8.0;
+    ra = 0.3 - 0.28*kh + 0.3*exp(-15.0*kh);
+    d = h.x - ra;
+    return distColour(min(tentLeft.x, 0.5 * d), min(tentLeft.y, kh), 1.0, 1.0);
+    //pos += vec3(-1.0, .0, .0);
+    //vec3  pos1 = rotateAroundZ(pos.xzy, sin(u_time) / 2.0 * pos.z);
+    ////pos1 = rotateAroundX(pos1, 90.0);
+    ////vec3  pos1 = opTwist(rotateAroundY(pos, cos(u_time) / 2.0).xzy, sin(u_time) / 2.0);
+    ////vec3  pos1 = opTwist(pos.xzy, sin(u_time) / 2.0);
 
-    angle = - angle;
-    rot = mat3(cos(angle),-sin(angle), 0.0,
-       	       sin(angle), cos(angle), 0.0,
-       	       0.0,	   0.0,	       1.0); //rotate around z
-    pos = rot * (pos + vec3(4.0, 0.0, 0.0));
-    radius = mix(0.2, 0.0, max(abs(pos.y) / height, 0.0));
-    radius += cos(pos.y * 4.0) / 50.0f;
-    dist = add(dist, length(pos.xz) - radius);
-    vec3 c = vec3(1.0, 0.0, 0.0);
-    return distColour(dist, c);
+    //float truc = -pos.y * (pos.y + 5);
+    //float angle = abs(sin(u_time)) * truc / height;
+    //mat3 rot = mat3(cos(angle),-sin(angle), 0.0,
+    //    	    sin(angle), cos(angle), 0.0,
+    //    	    0.0,	0.0,	    1.0); //rotate around z
+    ////vec3 pos1 = rot * pos;
+    //float radius = mix(0.2, 0.0, max(abs(pos1.y) / height, 0.0));
+    //radius += cos(pos1.y * 4.0) / 50.0f;
+    //float dist = length(pos1.xz) - radius;
+
+    //angle = - angle;
+    //rot = mat3(cos(angle),-sin(angle), 0.0,
+    //   	       sin(angle), cos(angle), 0.0,
+    //   	       0.0,	   0.0,	       1.0); //rotate around z
+    //pos = rot * (pos + vec3(4.0, 0.0, 0.0));
+    //radius = mix(0.2, 0.0, max(abs(pos.y) / height, 0.0));
+    //radius += cos(pos.y * 4.0) / 50.0f;
+    //dist = add(dist, length(pos.xz) - radius);
+    //vec3 col = vec3(1.0, 0.0, 0.0);
+    //return distColour(dist, col);
+}
+
+distColour tunnel(vec3 pos) {
+    return distColour(Box(vec3(2.0, 3.0, 4.0), vec3(2.0, 1.0, 5.0)), vec3(0.5));
 }
 
 distColour character(vec3 pos) {
@@ -150,8 +219,8 @@ distColour scene(in vec3 pos) {
     float box =  Box(roadPos, vec3(0.9, 0.3, 9.0));
     float obox = Box(roadPos + vec3(0.0, -0.5, 0.0), vec3(0.8, 0.4, 9.1));
 
-    distColour t = tentacle(vec3(pos.x, roadPos.y, mod(pos.z, 6.0f)) - vec3(1.5, 0.0, 3.0), 2.0);
-    //return add(t, debugPosCubes);
+    distColour t = tentacle(vec3(pos.x, roadPos.y, mod(pos.z, 6.0f)) - vec3(1.5, 0.0, 3.0), pos.z);
+    //return (t);
 
     vec3 roadColour = vec3(0.0, 0.0, 0.0);
     if (roadPos.x < 0.77f && roadPos.x > -0.77f) {
@@ -201,8 +270,8 @@ vec3 AO(in vec3 pos, in vec3 nor) {
     }
 }
 
-//#define MAX_RAYMARCH_ITERATIONS 48 // enough for tests
-#define MAX_RAYMARCH_ITERATIONS 2048 // production level
+#define MAX_RAYMARCH_ITERATIONS 512 // enough for tests
+//#define MAX_RAYMARCH_ITERATIONS 2048 // production level
 // IQ Raymarching www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
 distColour castRay(in vec3 rayOrigin, in vec3 rayDirection, out  float complexity) {
     const  float depthMin = 1.0;
